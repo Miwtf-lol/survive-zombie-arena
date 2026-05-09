@@ -54,9 +54,8 @@ GlassOverlay.BackgroundColor3 = Color3.fromRGB(255, 182, 193)
 GlassOverlay.BackgroundTransparency = 0.88
 GlassOverlay.BorderSizePixel = 0
 GlassOverlay.Parent = Window
-GlassOverlay.ZIndex = 0
+GlassOverlay.ZIndex = -1
 GlassOverlay.Active = false
-GlassOverlay.InputBegan:Connect(function() end)
 local GlassCorner = Instance.new("UICorner")
 GlassCorner.CornerRadius = UDim.new(0, 16)
 GlassCorner.Parent = GlassOverlay
