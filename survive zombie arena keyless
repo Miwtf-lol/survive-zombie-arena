@@ -1,116 +1,940 @@
--- SERVICES
+-- Miu Hub -- Transparent Pink GUI
+-- Full Features from Obsidian UI
+-- Fly + Zombie ESP + Kill Aura
+-- Draggable | Minimizable | Compact Edition
+
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
--- LOAD LIB
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua"))()
-local ThemeManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/ThemeManager.lua"))()
-local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua"))()
+-- ==================== CREATE GUI ====================
 
--- WINDOW
-local Window = Library:CreateWindow({
-    Title = "Miu Hub",
-    Center = true,
-    AutoShow = true,
-    TabPadding = 8,
-    MenuFadeTime = 0.2
-})
+local MiuHub = Instance.new("ScreenGui")
+MiuHub.Name = "MiuHub"
+MiuHub.Parent = CoreGui
+MiuHub.ResetOnSpawn = false
+MiuHub.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+MiuHub.DisplayOrder = 999
+MiuHub.IgnoreGuiInset = true
 
--- 🌸 PINK THEME
-Library:SetTheme({
-    BackgroundColor = Color3.fromRGB(255, 182, 193),
-    MainColor = Color3.fromRGB(255, 160, 200),
-    AccentColor = Color3.fromRGB(255, 105, 180),
-    OutlineColor = Color3.fromRGB(255, 200, 220),
-    FontColor = Color3.fromRGB(255, 255, 255)
-})
+-- ==================== WINDOW ====================
 
--- 🌫️ TRANSPARENCY + ROUND
-task.spawn(function()
-    for _, v in pairs(CoreGui:GetDescendants()) do
-        if v:IsA("Frame") then
-            v.BackgroundTransparency = 0.25
-            pcall(function()
-                local c = Instance.new("UICorner")
-                c.CornerRadius = UDim.new(0, 10)
-                c.Parent = v
-            end)
-        elseif v:IsA("TextButton") or v:IsA("TextLabel") then
-            v.BackgroundTransparency = 0.3
+local Window = Instance.new("Frame")
+Window.Name = "MainWindow"
+Window.Size = UDim2.new(0, 340, 0, 430)
+Window.Position = UDim2.new(0.5, -170, 0.5, -215)
+Window.BackgroundColor3 = Color3.fromRGB(255,105,180)
+Window.BackgroundTransparency = 0.15
+Window.BorderSizePixel = 0
+Window.Active = true
+Window.ClipsDescendants = true
+Window.Parent = MiuHub
+
+local WindowCorner = Instance.new("UICorner")
+WindowCorner.CornerRadius = UDim.new(0,16)
+WindowCorner.Parent = Window
+
+local Stroke = Instance.new("UIStroke")
+Stroke.Color = Color3.fromRGB(255,80,160)
+Stroke.Thickness = 2
+Stroke.Transparency = 0.3
+Stroke.Parent = Window
+
+-- ==================== TITLE BAR ====================
+
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1,0,0,42)
+TitleBar.BackgroundColor3 = Color3.fromRGB(255,80,160)
+TitleBar.BackgroundTransparency = 0.2
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = Window
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0,14)
+TitleCorner.Parent = TitleBar
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1,-90,1,0)
+Title.Position = UDim2.new(0,14,0,0)
+Title.BackgroundTransparency = 1
+Title.Text = "🌸 Miu Hub"
+Title.TextColor3 = Color3.fromRGB(255,255,255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TitleBar
+
+-- Minimize
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0,30,0,30)
+MinBtn.Position = UDim2.new(1,-72,0,6)
+MinBtn.BackgroundColor3 = Color3.fromRGB(255,80,120)
+MinBtn.BackgroundTransparency = 0.5
+MinBtn.Text = "—"
+MinBtn.TextColor3 = Color3.fromRGB(255,255,255)
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 18
+MinBtn.BorderSizePixel = 0
+MinBtn.Parent = TitleBar
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0,8)
+MinCorner.Parent = MinBtn
+
+-- Close
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0,30,0,30)
+CloseBtn.Position = UDim2.new(1,-36,0,6)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(255,80,120)
+CloseBtn.BackgroundTransparency = 0.5
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(255,255,255)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 18
+CloseBtn.BorderSizePixel = 0
+CloseBtn.Parent = TitleBar
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0,8)
+CloseCorner.Parent = CloseBtn
+
+-- ==================== DRAG SYSTEM ====================
+
+local dragging = false
+local dragStart = Vector2.new()
+local startPos = UDim2.new()
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = Window.Position
+    end
+end)
+
+TitleBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+TitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        Window.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- ==================== MINIMIZE ====================
+
+local minimized = false
+local fullSize = UDim2.new(0, 340, 0, 430)
+local miniSize = UDim2.new(0, 340, 0, 42)
+
+MinBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    local targetSize = minimized and miniSize or fullSize
+    local tween = TweenService:Create(Window, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = targetSize})
+    tween:Play()
+    MainContent.Visible = not minimized
+end)
+
+-- ==================== CLEANUP ON CLOSE ====================
+
+CloseBtn.MouseButton1Click:Connect(function()
+    if Flying then StopFly() end
+    if NoclipConnection then NoclipConnection:Disconnect() end
+    for _, v in pairs(ESPFolder:GetChildren()) do v:Destroy() end
+    KAConfig.Enabled = false
+    MiuHub:Destroy()
+end)
+
+-- ==================== MAIN CONTENT ====================
+
+local MainContent = Instance.new("ScrollingFrame")
+MainContent.Name = "MainContent"
+MainContent.Size = UDim2.new(1,-12,1,-54)
+MainContent.Position = UDim2.new(0,6,0,48)
+MainContent.BackgroundColor3 = Color3.fromRGB(255,150,200)
+MainContent.BackgroundTransparency = 0.85
+MainContent.BorderSizePixel = 0
+MainContent.ScrollBarThickness = 4
+MainContent.ScrollBarImageColor3 = Color3.fromRGB(255,80,160)
+MainContent.CanvasSize = UDim2.new(0,0,0,0)
+MainContent.AutomaticCanvasSize = Enum.AutomaticSize.Y
+MainContent.Parent = Window
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0,10)
+MainCorner.Parent = MainContent
+
+local MainLayout = Instance.new("UIListLayout")
+MainLayout.Padding = UDim.new(0,6)
+MainLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+MainLayout.SortOrder = Enum.SortOrder.LayoutOrder
+MainLayout.Parent = MainContent
+
+local MainPadding = Instance.new("UIPadding")
+MainPadding.PaddingTop = UDim.new(0,8)
+MainPadding.PaddingBottom = UDim.new(0,8)
+MainPadding.PaddingLeft = UDim.new(0,6)
+MainPadding.PaddingRight = UDim.new(0,6)
+MainPadding.Parent = MainContent
+
+-- ==================== UI HELPERS ====================
+
+local function CreateSectionBox(parent, title)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1,0,0,0)
+    frame.BackgroundColor3 = Color3.fromRGB(255,182,193)
+    frame.BackgroundTransparency = 0.55
+    frame.BorderSizePixel = 0
+    frame.AutomaticSize = Enum.AutomaticSize.Y
+    frame.Parent = parent
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0,10)
+    corner.Parent = frame
+
+    local titleLbl = Instance.new("TextLabel")
+    titleLbl.Size = UDim2.new(1,-16,0,26)
+    titleLbl.Position = UDim2.new(0,8,0,4)
+    titleLbl.BackgroundTransparency = 1
+    titleLbl.Text = "💗 "..title
+    titleLbl.TextColor3 = Color3.fromRGB(255,255,255)
+    titleLbl.Font = Enum.Font.GothamBold
+    titleLbl.TextSize = 14
+    titleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    titleLbl.Parent = frame
+
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0,4)
+    layout.Parent = frame
+
+    local padding = Instance.new("UIPadding")
+    padding.PaddingTop = UDim.new(0,32)
+    padding.PaddingBottom = UDim.new(0,8)
+    padding.PaddingLeft = UDim.new(0,8)
+    padding.PaddingRight = UDim.new(0,8)
+    padding.Parent = frame
+
+    return frame
+end
+
+local function CreateLabel(parent, text)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1,0,0,20)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.TextColor3 = Color3.fromRGB(255,255,255)
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 12
+    lbl.Parent = parent
+    return lbl
+end
+
+local function CreateToggle(parent, text, default, callback)
+    local state = default
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1,0,0,32)
+    frame.BackgroundColor3 = Color3.fromRGB(255,105,180)
+    frame.BackgroundTransparency = 0.6
+    frame.BorderSizePixel = 0
+    frame.Parent = parent
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0,8)
+    corner.Parent = frame
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1,-50,1,0)
+    label.Position = UDim2.new(0,10,0,0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 13
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+
+    local toggle = Instance.new("TextButton")
+    toggle.Size = UDim2.new(0,36,0,22)
+    toggle.Position = UDim2.new(1,-44,0,5)
+    toggle.BackgroundColor3 = state and Color3.fromRGB(255,60,140) or Color3.fromRGB(80,80,80)
+    toggle.Text = ""
+    toggle.BorderSizePixel = 0
+    toggle.Parent = frame
+
+    local tCorner = Instance.new("UICorner")
+    tCorner.CornerRadius = UDim.new(0,11)
+    tCorner.Parent = toggle
+
+    toggle.MouseButton1Click:Connect(function()
+        state = not state
+        toggle.BackgroundColor3 = state and Color3.fromRGB(255,60,140) or Color3.fromRGB(80,80,80)
+        if callback then callback(state) end
+    end)
+
+    return frame
+end
+
+local function CreateButton(parent, text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1,0,0,30)
+    btn.BackgroundColor3 = Color3.fromRGB(255,80,160)
+    btn.BackgroundTransparency = 0.4
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    btn.BorderSizePixel = 0
+    btn.Parent = parent
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0,8)
+    btnCorner.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        if callback then callback() end
+    end)
+    return btn
+end
+
+-- ==================== FLY (OBSIDIAN STYLE) ====================
+
+local FlySection = CreateSectionBox(MainContent,"Fly Controls")
+
+local Flying = false
+local FlySpeed = 50
+local FlyConnection = nil
+local BodyGyro = nil
+local BodyVelocity = nil
+local NoclipConnection = nil
+
+-- Load ControlModule like Obsidian
+local PlayerScripts = LocalPlayer:WaitForChild("PlayerScripts")
+local PlayerModule = require(PlayerScripts:WaitForChild("PlayerModule"))
+local ControlModule = PlayerModule:GetControls()
+
+CreateToggle(FlySection,"Enable Fly",false,function(val)
+    Flying = val
+    if val then
+        StartFly()
+    else
+        StopFly()
+    end
+end)
+
+local SpeedLabel = CreateLabel(FlySection,"Fly Speed: "..FlySpeed)
+
+CreateButton(FlySection,"Increase Speed +10",function()
+    FlySpeed = FlySpeed + 10
+    SpeedLabel.Text = "Fly Speed: "..FlySpeed
+end)
+
+CreateButton(FlySection,"Decrease Speed -10",function()
+    FlySpeed = math.max(10, FlySpeed - 10)
+    SpeedLabel.Text = "Fly Speed: "..FlySpeed
+end)
+
+CreateToggle(FlySection,"Noclip (Fly thru walls)",false,function(val)
+    if val then
+        NoclipConnection = RunService.Stepped:Connect(function()
+            local char = LocalPlayer.Character
+            if char then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+    else
+        if NoclipConnection then
+            NoclipConnection:Disconnect()
+            NoclipConnection = nil
+        end
+        local char = LocalPlayer.Character
+        if char then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
         end
     end
 end)
 
--- 🧲 DRAG GUI
-local dragging, dragInput, dragStart, startPos
-
-local function makeDraggable(frame)
-    frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
+function StartFly()
+    local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local Humanoid = Character:WaitForChild("Humanoid")
+    local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+    
+    BodyGyro = Instance.new("BodyGyro")
+    BodyGyro.P = 9e4
+    BodyGyro.MaxTorque = Vector3.new(9e9, 0, 9e9)
+    BodyGyro.CFrame = HumanoidRootPart.CFrame
+    BodyGyro.Parent = HumanoidRootPart
+    
+    BodyVelocity = Instance.new("BodyVelocity")
+    BodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    BodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    BodyVelocity.Parent = HumanoidRootPart
+    
+    Humanoid.PlatformStand = true
+    
+    FlyConnection = RunService.RenderStepped:Connect(function()
+        if not Flying then return end
+        
+        local camCF = Camera.CFrame
+        local camLook = camCF.LookVector
+        local camRight = camCF.RightVector
+        local moveVec = ControlModule:GetMoveVector()
+        local moveDir = (camLook * -moveVec.Z) + (camRight * moveVec.X)
+        
+        if moveDir.Magnitude > 0.01 then
+            moveDir = moveDir.Unit * FlySpeed
+        else
+            moveDir = Vector3.new(0, 0, 0)
         end
-    end)
-
-    frame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
-            dragInput = input
+        
+        -- Space = up, Shift = down
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+            moveDir = moveDir + Vector3.new(0, FlySpeed, 0)
+        elseif UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+            moveDir = moveDir + Vector3.new(0, -FlySpeed, 0)
         end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(
-                startPos.X.Scale,
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y
-            )
+        
+        if BodyVelocity then
+            BodyVelocity.Velocity = moveDir
+        end
+        
+        if BodyGyro then
+            local yaw = math.atan2(camLook.X, camLook.Z)
+            BodyGyro.CFrame = CFrame.Angles(0, yaw, 0)
         end
     end)
 end
 
--- Tìm main frame của UI để drag
-task.wait(1)
-for _, v in pairs(CoreGui:GetDescendants()) do
-    if v:IsA("Frame") and v.Name:lower():find("main") then
-        makeDraggable(v)
+function StopFly()
+    if FlyConnection then
+        FlyConnection:Disconnect()
+        FlyConnection = nil
+    end
+    if BodyGyro then
+        BodyGyro:Destroy()
+        BodyGyro = nil
+    end
+    if BodyVelocity then
+        BodyVelocity:Destroy()
+        BodyVelocity = nil
+    end
+    
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.PlatformStand = false
+        end
     end
 end
 
--- ➖ MINIMIZE GUI
-local minimized = false
+-- Re-init on respawn
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(1)
+    PlayerScripts = LocalPlayer:WaitForChild("PlayerScripts")
+    PlayerModule = require(PlayerScripts:WaitForChild("PlayerModule"))
+    ControlModule = PlayerModule:GetControls()
+    
+    if Flying then
+        task.wait(0.5)
+        StartFly()
+    end
+end)
 
-local function toggleMinimize()
-    minimized = not minimized
+-- ==================== ZOMBIE ESP (OBSIDIAN STYLE) ====================
 
-    for _, v in pairs(CoreGui:GetDescendants()) do
-        if v:IsA("Frame") then
-            if v.Name ~= "Topbar" then
-                v.Visible = not minimized
+local ESPSection = CreateSectionBox(MainContent,"Zombie ESP")
+
+local ZombieESP = {
+    Enabled = false,
+    ShowName = true,
+    ShowHealth = true,
+    ShowDistance = true,
+    MaxDistance = 1000,
+    TextSize = 14,
+    Color = Color3.fromRGB(255, 80, 160),
+    Zombies = {},
+}
+
+local ESPFolder = Instance.new("Folder")
+ESPFolder.Name = "ZombieESP"
+ESPFolder.Parent = CoreGui
+
+local function RemoveZombieESP(zombieModel)
+    local esp = ZombieESP.Zombies[zombieModel]
+    if not esp then return end
+    if esp.Billboard then esp.Billboard:Destroy() end
+    if esp.Highlight then esp.Highlight:Destroy() end
+    ZombieESP.Zombies[zombieModel] = nil
+end
+
+local function CreateZombieESP(zombieModel)
+    if ZombieESP.Zombies[zombieModel] then return end
+    
+    local head = zombieModel:FindFirstChild("HumanoidRootPart") or zombieModel:FindFirstChild("Head") or zombieModel:FindFirstChildWhichIsA("BasePart")
+    local humanoid = zombieModel:FindFirstChildOfClass("Humanoid")
+    if not head then return end
+    
+    local esp = {}
+    
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "MiuESP_Billboard"
+    billboard.Size = UDim2.new(0, 200, 0, 60)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Adornee = head
+    billboard.Parent = ESPFolder
+    
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, 0, 0, 20)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.TextColor3 = ZombieESP.Color
+    nameLabel.TextStrokeTransparency = 0
+    nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextSize = ZombieESP.TextSize
+    nameLabel.Text = zombieModel.Name
+    nameLabel.Parent = billboard
+    
+    local healthLabel = Instance.new("TextLabel")
+    healthLabel.Size = UDim2.new(1, 0, 0, 20)
+    healthLabel.Position = UDim2.new(0, 0, 0, 20)
+    healthLabel.BackgroundTransparency = 1
+    healthLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+    healthLabel.TextStrokeTransparency = 0
+    healthLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    healthLabel.Font = Enum.Font.GothamBold
+    healthLabel.TextSize = ZombieESP.TextSize - 2
+    healthLabel.Text = humanoid and tostring(math.floor(humanoid.Health)) .. "/" .. tostring(math.floor(humanoid.MaxHealth)) or "???"
+    healthLabel.Parent = billboard
+    
+    local distLabel = Instance.new("TextLabel")
+    distLabel.Size = UDim2.new(1, 0, 0, 20)
+    distLabel.Position = UDim2.new(0, 0, 0, 40)
+    distLabel.BackgroundTransparency = 1
+    distLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    distLabel.TextStrokeTransparency = 0
+    distLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    distLabel.Font = Enum.Font.GothamBold
+    distLabel.TextSize = ZombieESP.TextSize - 2
+    distLabel.Text = "0m"
+    distLabel.Parent = billboard
+    
+    esp.Billboard = billboard
+    esp.NameLabel = nameLabel
+    esp.HealthLabel = healthLabel
+    esp.DistLabel = distLabel
+    esp.Head = head
+    esp.Humanoid = humanoid
+    
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor = ZombieESP.Color
+    highlight.OutlineColor = Color3.new(1, 1, 1)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.Adornee = zombieModel
+    highlight.Parent = ESPFolder
+    esp.Highlight = highlight
+    
+    ZombieESP.Zombies[zombieModel] = esp
+    
+    zombieModel.AncestryChanged:Connect(function(_, parent)
+        if parent == nil then
+            RemoveZombieESP(zombieModel)
+        end
+    end)
+    
+    if humanoid then
+        humanoid.HealthChanged:Connect(function(health)
+            if ZombieESP.Zombies[zombieModel] and ZombieESP.Zombies[zombieModel].HealthLabel then
+                local pct = health / humanoid.MaxHealth
+                ZombieESP.Zombies[zombieModel].HealthLabel.Text = tostring(math.floor(health)) .. "/" .. tostring(math.floor(humanoid.MaxHealth))
+                if pct > 0.5 then
+                    ZombieESP.Zombies[zombieModel].HealthLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+                elseif pct > 0.25 then
+                    ZombieESP.Zombies[zombieModel].HealthLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+                else
+                    ZombieESP.Zombies[zombieModel].HealthLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+                end
+            end
+        end)
+        
+        humanoid.Died:Connect(function()
+            RemoveZombieESP(zombieModel)
+        end)
+    end
+end
+
+-- ESP Toggles
+CreateToggle(ESPSection,"Enable Zombie ESP",false,function(val)
+    ZombieESP.Enabled = val
+    if not val then
+        for _, v in pairs(ESPFolder:GetChildren()) do v:Destroy() end
+        ZombieESP.Zombies = {}
+    end
+end)
+
+CreateToggle(ESPSection,"Show Name",true,function(val)
+    ZombieESP.ShowName = val
+end)
+
+CreateToggle(ESPSection,"Show Health",true,function(val)
+    ZombieESP.ShowHealth = val
+end)
+
+CreateToggle(ESPSection,"Show Distance",true,function(val)
+    ZombieESP.ShowDistance = val
+end)
+
+CreateLabel(ESPSection,"Max Distance: 1000 studs")
+
+-- ESP Update Loop
+local function UpdateESP()
+    if not ZombieESP.Enabled then return end
+    
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    
+    for zombieModel, esp in pairs(ZombieESP.Zombies) do
+        if not zombieModel.Parent then
+            RemoveZombieESP(zombieModel)
+            continue
+        end
+        
+        local head = esp.Head
+        if not head or not head.Parent then
+            RemoveZombieESP(zombieModel)
+            continue
+        end
+        
+        local distance = hrp and (hrp.Position - head.Position).Magnitude or 0
+        if distance > ZombieESP.MaxDistance then
+            if esp.Billboard then esp.Billboard.Enabled = false end
+            if esp.Highlight then esp.Highlight.Enabled = false end
+            continue
+        end
+        
+        if esp.Billboard then
+            esp.Billboard.Enabled = true
+            esp.NameLabel.Visible = ZombieESP.ShowName
+            esp.NameLabel.Text = zombieModel.Name
+            esp.HealthLabel.Visible = ZombieESP.ShowHealth and esp.Humanoid ~= nil
+            if ZombieESP.ShowDistance then
+                esp.DistLabel.Text = tostring(math.floor(distance)) .. "m"
+                esp.DistLabel.Visible = true
+            else
+                esp.DistLabel.Visible = false
+            end
+        end
+        
+        if esp.Highlight then
+            esp.Highlight.Enabled = true
+            esp.Highlight.FillColor = ZombieESP.Color
+        end
+    end
+end
+
+-- Scan zombies
+local function ScanZombies()
+    local zombiesFolder = Workspace:FindFirstChild("Zombies_Local")
+    if not zombiesFolder then return end
+    for _, zombie in pairs(zombiesFolder:GetChildren()) do
+        if zombie:IsA("Model") then
+            CreateZombieESP(zombie)
+        end
+    end
+    -- Also scan Workspace for any Humanoid models
+    for _, obj in pairs(Workspace:GetChildren()) do
+        if obj:IsA("Model") and obj ~= LocalPlayer.Character then
+            local hum = obj:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then
+                CreateZombieESP(obj)
             end
         end
     end
 end
 
--- Nút thu nhỏ (phím RightControl)
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.RightControl then
-        toggleMinimize()
+local zombiesFolder = Workspace:FindFirstChild("Zombies_Local")
+if zombiesFolder then
+    zombiesFolder.ChildAdded:Connect(function(child)
+        if child:IsA("Model") and ZombieESP.Enabled then
+            task.wait(0.1)
+            CreateZombieESP(child)
+        end
+    end)
+    zombiesFolder.ChildRemoved:Connect(function(child)
+        RemoveZombieESP(child)
+    end)
+end
+
+RunService.RenderStepped:Connect(UpdateESP)
+ScanZombies()
+
+-- ==================== KILL AURA (OBSIDIAN STYLE) ====================
+
+local KASection = CreateSectionBox(MainContent,"Kill Aura")
+
+local KAConfig = {
+    Enabled = false,
+    Range = 50,
+    FireRate = 0.06,
+    MaxRemotesPerFire = 6,
+    HighlightTarget = true,
+    Keybind = Enum.KeyCode.K,
+}
+
+local KAState = {
+    Connection = nil,
+    LastFireTime = 0,
+    CurrentTarget = nil,
+    TargetHighlight = nil,
+    ZombieClient = nil,
+    GunClient = nil,
+    GunRemotes = nil,
+    LastRemoteCount = 0,
+    TotalDamageDealt = 0,
+}
+
+local KACachedZombies = {}
+local KALastScan = 0
+
+-- Find game clients
+local function KAFindGameClients()
+    if _G.ZombieClient and typeof(_G.ZombieClient) == "table" and _G.ZombieClient.Zombies then
+        KAState.ZombieClient = _G.ZombieClient
     end
-end)
+    if _G.GunClient and typeof(_G.GunClient) == "table" and _G.GunClient.TryFire then
+        KAState.GunClient = _G.GunClient
+    end
+    
+    local playerScripts = LocalPlayer:FindFirstChild("PlayerScripts")
+    if playerScripts then
+        local function scan(parent)
+            for _, obj in ipairs(parent:GetChildren()) do
+                if obj:IsA("ModuleScript") then
+                    local s, r = pcall(function() return require(obj) end)
+                    if s and typeof(r) == "table" then
+                        if not KAState.ZombieClient and r.Zombies and r.GetNearbyZombieIds then
+                            KAState.ZombieClient = r
+                        end
+                        if not KAState.GunClient and r.TryFire then
+                            KAState.GunClient = r
+                        end
+                    end
+                end
+                if obj:IsA("Folder") or obj:IsA("ScreenGui") then
+                    scan(obj)
+                end
+            end
+        end
+        scan(playerScripts)
+    end
+    
+    local gunRemotes = ReplicatedStorage:FindFirstChild("GunRemotes")
+    if gunRemotes then
+        KAState.GunRemotes = {
+            Fire = gunRemotes:FindFirstChild("GunFire"),
+            Hit = gunRemotes:FindFirstChild("GunHit"),
+        }
+    end
+end
+
+-- Scan zombies fast
+local function KAScanZombiesFast()
+    local now = tick()
+    if now - KALastScan < 0.1 then
+        return KACachedZombies
+    end
+    KALastScan = now
+    
+    local zombies = {}
+    
+    if KAState.ZombieClient and KAState.ZombieClient.Zombies then
+        for id, data in pairs(KAState.ZombieClient.Zombies) do
+            if data and not data.IsDying and data.Model and data.Model.Parent then
+                table.insert(zombies, {
+                    Id = id,
+                    Data = data,
+                    Model = data.Model,
+                    Position = data.CurrentPosition or data.TargetPosition,
+                    Distance = math.huge,
+                })
+            end
+        end
+        KACachedZombies = zombies
+        return zombies
+    end
+    
+    local folder = Workspace:FindFirstChild("Zombies_Local")
+    if folder then
+        for _, model in ipairs(folder:GetChildren()) do
+            if model:IsA("Model") then
+                local pos = nil
+                local hrp = model:FindFirstChild("HumanoidRootPart")
+                if hrp then pos = hrp.Position end
+                local id = tonumber(model.Name:match("%d+")) or model.Name
+                table.insert(zombies, {Id = id, Model = model, Position = pos, Distance = math.huge})
+            end
+        end
+    end
+    
+    KACachedZombies = zombies
+    return zombies
+end
+
+-- Get closest zombies
+local function KAGetClosestZombies(maxCount)
+    local char = LocalPlayer.Character
+    if not char then return {} end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return {} end
+    
+    local myPos = hrp.Position
+    local allZombies = KAScanZombiesFast()
+    local inRange = {}
+    
+    for _, zombie in ipairs(allZombies) do
+        if zombie.Position then
+            local dist = (zombie.Position - myPos).Magnitude
+            if dist <= KAConfig.Range then
+                zombie.Distance = dist
+                table.insert(inRange, zombie)
+            end
+        end
+    end
+    
+    if #inRange == 0 then return {} end
+    if #inRange <= maxCount then return inRange end
+    
+    -- Sort by distance, take closest
+    table.sort(inRange, function(a, b) return a.Distance < b.Distance end)
+    local result = {}
+    for i = 1, math.min(maxCount, #inRange) do
+        table.insert(result, inRange[i])
+    end
+    return result
+end
+
+-- Highlight target
+local function KAClearHighlight()
+    if KAState.TargetHighlight then
+        pcall(function() KAState.TargetHighlight:Destroy() end)
+        KAState.TargetHighlight = nil
+    end
+end
+
+local function KAHighlightTarget(zombie)
+    if not KAConfig.HighlightTarget or not zombie or not zombie.Model then
+        KAClearHighlight()
+        return
+    end
+    if KAState.CurrentTarget == zombie and KAState.TargetHighlight and KAState.TargetHighlight.Parent then
+        return
+    end
+    KAClearHighlight()
+    
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor = Color3.fromRGB(220, 40, 40)
+    highlight.OutlineColor = Color3.fromRGB(255, 60, 60)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    highlight.Adornee = zombie.Model
+    highlight.Parent = zombie.Model
+    KAState.TargetHighlight = highlight
+end
+
+-- Fire at zombies
+local function KAFireAtZombies(zombies)
+    if #zombies == 0 then return 0 end
+    
+    local char = LocalPlayer.Character
+    if not char then return 0 end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return 0 end
+    
+    local origin = hrp.Position + Vector3.new(0, 2, 0)
+    local remoteCount = 0
+    
+    if KAState.GunClient and KAState.GunClient.TryFire then
+        local closest = zombies[1]
+        if closest and closest.Position then
+            local dir = (closest.Position - origin).Unit
+            
+            local oldGetAim = KAState.GunClient.GetAimDirection
+            local wasFiring = KAState.GunClient.IsFiring
+            
+            if oldGetAim then
+                KAState.GunClient.GetAimDirection = function(self) return dir end
+            end
+            KAState.GunClient.IsFiring = true
+            
+            pcall(function() KAState.GunClient:TryFire() end)
+            remoteCount = remoteCount + 1
+            
+            if oldGetAim then
+                KAState.GunClient.GetAimDirection = oldGetAim
+            end
+            KAState.GunClient.IsFiring = wasFiring
+        end
+        
+        if KAState.GunRemotes and KAState.GunRemotes.Hit then
+            local maxHits = math.min(#zombies, KAConfig.MaxRemotesPerFire)
+            for i = 1, maxHits do
+                local zombie = zombies[i]
+                if zombie and zombie.Id and zombie.Position then
+                    pcall(function() KAState.GunRemotes.Hit:FireServer(zombie.Id, zombie.Position) end)
+                end
+            end
+            remoteCount = remoteCount + maxHits
+        end
+        return remoteCount
+    end
+    
+    if KAState.GunRemotes then
+        if KAState.GunRemotes.Fire and zombies[1] and zombies[1].Position then
+            pcall(function() KAState.GunRemotes.Fire:FireServer(origin, (zombies[1].Position - origin).Unit) end)
+            remoteCount = remoteCount + 1
+        end
+        
+        if KAState.GunRemotes.Hit then
+            local maxHits = math.min(#zombies, KAConfig.MaxRemotesPerFire)
+            for i = 1, maxHits do
+                local zombie = zombies[i]
+                if zombie and zombie.Id and zombie.Position then
+                    pcall(function() KAState.GunRemotes.Hit:FireServer(zombie.Id, zombie.Position) end)
+                end
+            end
+            remoteCount = remoteCount + maxHits
+        end
+        return
