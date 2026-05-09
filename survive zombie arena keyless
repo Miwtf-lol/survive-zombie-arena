@@ -446,169 +446,38 @@ local function CreateButton(parent, text, callback)
     btn.BorderSizePixel = 0
     btn.Parent = parent
     local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 8)
-    btnCorner.Parent = btn
-    
-    btn.MouseButton1Click:Connect(function()
-        if callback then callback() end
-    end)
-    
-    btn.MouseEnter:Connect(function()
-        btn.BackgroundTransparency = 0.2
-    end)
-    btn.MouseLeave:Connect(function()
-        btn.BackgroundTransparency = 0.4
-    end)
-    
-    return btn
-end
+-- ==================== MAIN CONTENT ====================
 
-local function CreateLabel(parent, text)
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 0, 22)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = text
-    lbl.TextColor3 = Color3.fromRGB(255, 220, 240)
-    lbl.Font = Enum.Font.Gotham
-    lbl.TextSize = 13
-    lbl.Parent = parent
-    return {
-        SetText = function(_, txt)
-            lbl.Text = txt
-        end
-    }
-end
+local MainContent = Instance.new("ScrollingFrame")
+MainContent.Name = "MainContent"
+MainContent.Size = UDim2.new(1, -12, 1, -54)
+MainContent.Position = UDim2.new(0, 6, 0, 48)
+MainContent.BackgroundColor3 = Color3.fromRGB(255, 150, 200)
+MainContent.BackgroundTransparency = 0.85
+MainContent.BorderSizePixel = 0
+MainContent.ScrollBarThickness = 4
+MainContent.CanvasSize = UDim2.new(0,0,0,0)
+MainContent.AutomaticCanvasSize = Enum.AutomaticSize.Y
+MainContent.Parent = Window
 
--- ==================== DRAG FUNCTIONALITY ====================
-local function MakeDraggable(frame, dragHandle)
-    local dragging = false
-    local dragStart, startPos
-    
-    dragHandle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    
-    local dragConnection
-    dragConnection = UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            local newX = startPos.X.Offset + delta.X
-            local newY = startPos.Y.Offset + delta.Y
-            local screenSize = Workspace.CurrentCamera.ViewportSize
-            newX = math.clamp(newX, -frame.AbsoluteSize.X + 60, screenSize.X - 60)
-            newY = math.clamp(newY, -10, screenSize.Y - 40)
-            frame.Position = UDim2.new(0, newX, 0, newY)
-        end
-    end)
-end
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0,10)
+MainCorner.Parent = MainContent
 
--- ==================== MOBILE + PC DRAG ====================
+local MainLayout = Instance.new("UIListLayout")
+MainLayout.Padding = UDim.new(0,6)
+MainLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+MainLayout.SortOrder = Enum.SortOrder.LayoutOrder
+MainLayout.Parent = MainContent
 
-local dragging = false
-local dragStart
-local startPos
-
-TitleBar.Active = true
-
-TitleBar.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-	or input.UserInputType == Enum.UserInputType.Touch then
-
-		dragging = true
-		dragStart = input.Position
-		startPos = Window.Position
-	end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1
-	or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = false
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if dragging and (
-		input.UserInputType == Enum.UserInputType.MouseMovement
-		or input.UserInputType == Enum.UserInputType.Touch
-	) then
-
-		local delta = input.Position - dragStart
-
-		Window.Position = UDim2.new(
-			startPos.X.Scale,
-			startPos.X.Offset + delta.X,
-			startPos.Y.Scale,
-			startPos.Y.Offset + delta.Y
-		)
-	end
-end)
-
--- ==================== MINIMIZE FUNCTIONALITY ====================
-
-local minimized = false
-local NormalSize = UDim2.new(0, 340, 0, 430)
-local MiniSize = UDim2.new(0, 160, 0, 42)
-
-MinBtn.MouseButton1Click:Connect(function()
-	minimized = not minimized
-
-	if minimized then
-		Window:TweenSize(
-			MiniSize,
-			Enum.EasingDirection.Out,
-			Enum.EasingStyle.Quart,
-			0.25,
-			true
-		)
-
-		TabBar.Visible = false
-
-		for _, content in pairs(TabContents) do
-			content.Visible = false
-		end
-
-		MinBtn.Text = "◱"
-
-	else
-		Window:TweenSize(
-			NormalSize,
-			Enum.EasingDirection.Out,
-			Enum.EasingStyle.Quart,
-			0.25,
-			true
-		)
-
-		TabBar.Visible = true
-
-		if ActiveTab and Tabs[ActiveTab] then
-			Tabs[ActiveTab].Content.Visible = true
-		end
-
-		MinBtn.Text = "─"
-	end
-end)
-
--- ==================== CREATE TABS ====================
-local FlyContent, FlyLayout = CreateTabButton("Fly", "Fly", "✈️")
-local ESPContent, ESPLayout = CreateTabButton("ESP", "Zombie ESP", "👁️")
-local KAContent, KALayout = CreateTabButton("KillAura", "Kill Aura", "⚔️")
-local SettingsContent, SettingsLayout = CreateTabButton("Settings", "Settings", "⚙️")
-
--- Default tab
-SwitchTab("Fly")
-
+local MainPadding = Instance.new("UIPadding")
+MainPadding.PaddingTop = UDim.new(0,8)
+MainPadding.PaddingBottom = UDim.new(0,8)
+MainPadding.PaddingLeft = UDim.new(0,6)
+MainPadding.PaddingRight = UDim.new(0,6)
+MainPadding.Parent = MainContent
 -- ==================== FLY SECTION ====================
-local FlySection, FlySectionLayout = CreateSectionBox(FlyContent, "Fly Controls")
+local FlySection, FlySectionLayout = CreateSectionBox(MainContent, "Fly Controls")
 
 local Flying = false
 local FlySpeed = 50
@@ -729,7 +598,7 @@ local NoclipToggle = CreateToggle(FlySection, "Noclip", false, function(val)
 end)
 
 -- ==================== ESP SECTION ====================
-local ESPSection, ESPSectionLayout = CreateSectionBox(ESPContent, "Zombie ESP")
+local ESPSection, ESPSectionLayout = CreateSectionBox(MainContent, "Zombie ESP")
 
 local ZombieESP = {
     Enabled = false,
@@ -950,7 +819,7 @@ end)
 CreateLabel(ESPSection, "🎨 ESP Color: Hot Pink (Default)")
 
 -- ==================== KILL AURA SECTION ====================
-local KASection, KASectionLayout = CreateSectionBox(KAContent, "Kill Aura")
+local KASection, KASectionLayout = CreateSectionBox(MainContent, "Kill Aura")
 
 local KAConfig = {
     Enabled = false,
@@ -1165,10 +1034,9 @@ CreateSlider(KASection, "Fire Rate", 1, 1, 10, function(val)
     KAConfig.FireRate = val / 100
 end)
 
-CreateLabel(SettingsContent, "🌸 Miu Hub Loaded")
-CreateLabel(SettingsContent, "Pink Transparent UI")
-CreateLabel(SettingsContent, "Fly + ESP + Kill Aura")
-
+CreateLabel(MainContent, "🌸 Miu Hub Loaded")
+CreateLabel(MainContent, "Pink Transparent UI")
+CreateLabel(MainContent, "Fly + ESP + Kill Aura")
 KAFindGameClients()
 
 print("Miu Hub Loaded Successfully")
