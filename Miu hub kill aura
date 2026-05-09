@@ -1,0 +1,38 @@
+-- Tạo GUI
+local ScreenGui = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local TextLabel = Instance.new("TextLabel")
+
+ScreenGui.Parent = game.CoreGui
+
+-- Frame giữa màn hình
+Frame.Parent = ScreenGui
+Frame.BackgroundColor3 = Color3.fromRGB(255, 105, 180) -- Màu hồng
+Frame.Size = UDim2.new(0, 300, 0, 150)
+Frame.Position = UDim2.new(0.5, -150, 0.5, -75)
+Frame.AnchorPoint = Vector2.new(0.5, 0.5)
+
+-- Text "Miu Hub loading"
+TextLabel.Parent = Frame
+TextLabel.Size = UDim2.new(1, 0, 1, 0)
+TextLabel.BackgroundTransparency = 1
+TextLabel.Text = "Miu Hub loading..."
+TextLabel.TextScaled = true
+TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TextLabel.Font = Enum.Font.GothamBold
+
+-- Đợi 2 giây
+wait(2)
+
+-- Xóa bảng loading
+ScreenGui:Destroy()
+
+-- Thông báo góc (gần nút nhảy)
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Miu Hub",
+    Text = "Miu Hub đã tải",
+    Duration = 3
+})
+
+-- Chạy script chính
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Miwtf-lol/survive-zombie-arena/refs/heads/main/survive%20zombie%20arena%20keyless"))()
