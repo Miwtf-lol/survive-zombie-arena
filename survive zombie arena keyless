@@ -1,258 +1,827 @@
---// MIU HUB - Survive Zombie Arena
---// Kill Aura + Fly (Fixed)
+-- 🌸 MIU HUB - Survive Zombie Arena [SIÊU VIP]
+-- Author: MIU Team | Version: 3.0 VIP
+-- All features: Kill Aura, Fly, Infinite Ammo, ESP, Pink GUI
 
-pcall(function()
-    game:GetService("CoreGui"):FindFirstChild("MIU_HUB"):Destroy()
-end)
+repeat task.wait() until game:IsLoaded()
 
 local Players = game:GetService("Players")
-local RS = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local UIS = game:GetService("UserInputService")
+local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
-local LP = Players.LocalPlayer
-local Character = LP.Character or LP.CharacterAdded:Wait()
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local camera = Workspace.CurrentCamera
+local mouse = player:GetMouse()
 
-local Aura = false
-local Fly = false
-local Range = 150
-local FlySpeed = 70
+-- ==========================================
+-- TÌM REMOTE
+-- ==========================================
+local gunHit, gunFire
 
-local BV
-local BG
+local function findRemotes()
+    local folder = ReplicatedStorage:FindFirstChild("GunRemotes")
+    if folder then
+        gunHit = folder:FindFirstChild("GunHit")
+        gunFire = folder:FindFirstChild("GunFire")
+    end
+    if not gunHit then
+        for _, v in ipairs(ReplicatedStorage:GetDescendants()) do
+            if v:IsA("RemoteEvent") then
+                if v.Name:lower():find("hit") or v.Name:lower():find("damage") then
+                    gunHit = v
+                end
+                if v.Name:lower():find("fire") or v.Name:lower():find("shoot") then
+                    gunFire = v
+                end
+            end
+        end
+    end
+    if gunHit and not gunFire then gunFire = gunHit end
+    if gunFire and not gunHit then gunHit = gunFire end
+    
+    print("[MIU VIP] GunHit:", gunHit and gunHit:GetFullName() or "NOT FOUND")
+    print("[MIU VIP] GunFire:", gunFire and gunFire:GetFullName() or "NOT FOUND")
+end
 
---// REMOTES
-local GunFire = RS:WaitForChild("GunRemotes"):WaitForChild("GunFire")
-local GunHit = RS:WaitForChild("GunRemotes"):WaitForChild("GunHit")
+findRemotes()
 
---// UPDATE CHARACTER
-LP.CharacterAdded:Connect(function(char)
-    Character = char
-end)
+-- ==========================================
+-- THÔNG BÁO KHỞI ĐỘNG (FIXED POSITION)
+-- ==========================================
+local notifGui = Instance.new("ScreenGui")
+notifGui.Name = "MIU_Notif"
+notifGui.ResetOnSpawn = false
+notifGui.IgnoreGuiInset = true
+notifGui.DisplayOrder = 999
+notifGui.Parent = playerGui
 
---// GUI
-local SG = Instance.new("ScreenGui")
-SG.Name = "MIU_HUB"
-SG.Parent = game.CoreGui
-SG.ResetOnSpawn = false
+local notif = Instance.new("Frame")
+notif.BackgroundColor3 = Color3.fromRGB(255, 50, 150)
+notif.BackgroundTransparency = 0.1
+notif.BorderSizePixel = 0
+notif.AnchorPoint = Vector2.new(0.5, 0.5)
+notif.Size = UDim2.new(0, 0, 0, 0)
+notif.Position = UDim2.new(0.5, 0, 0.45, 0)  -- FIXED: đúng vị trí
+notif.Parent = notifGui
 
---// NOTIFY
-local Notify = Instance.new("Frame")
-Notify.Parent = SG
-Notify.Size = UDim2.new(0,0,0,50)
-Notify.Position = UDim2.new(0.5,-110,0,-60)
-Notify.BackgroundColor3 = Color3.fromRGB(255,105,180)
-Notify.BorderSizePixel = 0
+local nCorner = Instance.new("UICorner")
+nCorner.CornerRadius = UDim.new(0, 16)
+nCorner.Parent = notif
 
-Instance.new("UICorner", Notify).CornerRadius = UDim.new(0,12)
+-- Glow
+local glow = Instance.new("Frame")
+glow.Size = UDim2.new(1, 12, 1, 12)
+glow.Position = UDim2.new(0, -6, 0, -6)
+glow.BackgroundColor3 = Color3.fromRGB(255, 20, 120)
+glow.BackgroundTransparency = 0.5
+glow.BorderSizePixel = 0
+glow.ZIndex = 0
+local gCorner = Instance.new("UICorner")
+gCorner.CornerRadius = UDim.new(0, 20)
+gCorner.Parent = glow
+glow.Parent = notif
 
-local NText = Instance.new("TextLabel")
-NText.Parent = Notify
-NText.BackgroundTransparency = 1
-NText.Size = UDim2.new(1,0,1,0)
-NText.Text = "MIU HUB FREE"
-NText.TextColor3 = Color3.new(1,1,1)
-NText.Font = Enum.Font.GothamBold
-NText.TextScaled = true
+local nTitle = Instance.new("TextLabel")
+nTitle.Size = UDim2.new(1, -30, 0.5, 0)
+nTitle.Position = UDim2.new(0, 15, 0.08, 0)
+nTitle.BackgroundTransparency = 1
+nTitle.Text = "🌸 MIU HUB"
+nTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+nTitle.Font = Enum.Font.GothamBold
+nTitle.TextSize = 30
+nTitle.TextScaled = true
+nTitle.Parent = notif
 
-TweenService:Create(
-    Notify,
-    TweenInfo.new(0.5),
-    {
-        Size = UDim2.new(0,220,0,50),
-        Position = UDim2.new(0.5,-110,0,20)
-    }
-):Play()
+local nSub = Instance.new("TextLabel")
+nSub.Size = UDim2.new(1, -30, 0.3, 0)
+nSub.Position = UDim2.new(0, 15, 0.55, 0)
+nSub.BackgroundTransparency = 1
+nSub.Text = "Survive Zombie Arena"
+nSub.TextColor3 = Color3.fromRGB(255, 200, 230)
+nSub.Font = Enum.Font.Gotham
+nSub.TextSize = 14
+nSub.TextScaled = true
+nSub.Parent = notif
 
-task.wait(2)
+local nVersion = Instance.new("TextLabel")
+nVersion.Size = UDim2.new(1, -30, 0.2, 0)
+nVersion.Position = UDim2.new(0, 15, 0.82, 0)
+nVersion.BackgroundTransparency = 1
+nVersion.Text = "v3.0 VIP"
+nVersion.TextColor3 = Color3.fromRGB(255, 130, 190)
+nVersion.Font = Enum.Font.Gotham
+nVersion.TextSize = 10
+nVersion.TextXAlignment = Enum.TextXAlignment.Right
+nVersion.Parent = notif
 
-TweenService:Create(
-    Notify,
-    TweenInfo.new(0.5),
-    {
-        Position = UDim2.new(0.5,-110,0,-70)
-    }
-):Play()
+-- Animation pop in
+local popIn = TweenService:Create(notif, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Size = UDim2.new(0, 420, 0, 90),
+    BackgroundTransparency = 0.1
+})
+popIn:Play()
+
+task.wait(2.5)
+
+-- Fade out
+local fadeOut = TweenService:Create(notif, TweenInfo.new(0.4), {
+    Size = UDim2.new(0, 420, 0, 0),
+    BackgroundTransparency = 1
+})
+fadeOut:Play()
+nTitle.TextTransparency = 1
+nSub.TextTransparency = 1
+nVersion.TextTransparency = 1
 
 task.wait(0.5)
-Notify:Destroy()
+notifGui:Destroy()
 
---// MAIN
-local Main = Instance.new("Frame")
-Main.Parent = SG
-Main.Size = UDim2.new(0,220,0,180)
-Main.Position = UDim2.new(0.1,0,0.3,0)
-Main.BackgroundColor3 = Color3.fromRGB(255,105,180)
-Main.BorderSizePixel = 0
-Main.Active = true
-Main.Draggable = true
+-- ==========================================
+-- CẤU HÌNH
+-- ==========================================
+local CONFIG = {
+    radius = 250, minRad = 5, maxRad = 1000,
+    fireRate = 0.05, multiHit = 3,
+    headshot = true, infAmmo = true, silent = false,
+    flySpeed = 55, minSpeed = 5, maxSpeed = 300,
+}
 
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0,14)
+local auraOn = false
+local flyOn = false
+local kills = 0
+local auraConn = nil
+local flyConn = nil
+local bGyro = nil
+local bVel = nil
 
-local Title = Instance.new("TextLabel")
-Title.Parent = Main
-Title.Size = UDim2.new(1,0,0,30)
-Title.BackgroundTransparency = 1
-Title.Text = "MIU HUB"
-Title.TextColor3 = Color3.new(1,1,1)
-Title.Font = Enum.Font.GothamBold
-Title.TextScaled = true
-
---// CREATE BUTTON
-local function MakeButton(name,ypos)
-    local B = Instance.new("TextButton")
-    B.Parent = Main
-    B.Size = UDim2.new(0.82,0,0,40)
-    B.Position = UDim2.new(0.09,0,0,ypos)
-    B.BackgroundColor3 = Color3.fromRGB(255,20,147)
-    B.Text = name
-    B.TextColor3 = Color3.new(1,1,1)
-    B.Font = Enum.Font.GothamBold
-    B.TextScaled = true
-    B.BorderSizePixel = 0
-
-    Instance.new("UICorner", B).CornerRadius = UDim.new(0,12)
-
-    return B
+-- ==========================================
+-- KILL AURA
+-- ==========================================
+local function findEnemies(range)
+    local char = player.Character
+    if not char then return {} end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return {} end
+    
+    local pos = root.Position
+    local list = {}
+    
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("Model") then
+            local hum = obj:FindFirstChild("Humanoid")
+            if hum and hum.Health > 0 and not Players:GetPlayerFromCharacter(obj) then
+                local r = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso") or obj:FindFirstChild("UpperTorso")
+                if r then
+                    local d = (r.Position - pos).Magnitude
+                    if d <= range then
+                        table.insert(list, {model = obj, root = r, hum = hum, dist = d})
+                    end
+                end
+            end
+        end
+    end
+    
+    table.sort(list, function(a, b) return a.dist < b.dist end)
+    return list
 end
 
-local AuraBtn = MakeButton("KILL AURA : OFF",40)
-local FlyBtn = MakeButton("FLY : OFF",95)
+local function fireAtEnemy(data)
+    if not gunHit then return end
+    local parts = {}
+    
+    if CONFIG.headshot and data.model:FindFirstChild("Head") then
+        table.insert(parts, data.model:FindFirstChild("Head"))
+    end
+    table.insert(parts, data.root)
+    
+    for _, child in ipairs(data.model:GetChildren()) do
+        if child:IsA("BasePart") and #parts < 6 then
+            table.insert(parts, child)
+        end
+    end
+    
+    for i = 1, CONFIG.multiHit do
+        local target = parts[math.random(1, #parts)]
+        if target then
+            local off = Vector3.new(
+                math.random(-200,200)/100, math.random(-200,200)/100, math.random(-200,200)/100
+            )
+            local norm = Vector3.new(
+                math.random(-100,100)/100, math.random(50,100)/100, math.random(-100,100)/100
+            ).Unit
+            
+            pcall(function()
+                gunHit:FireServer(data.model, target.Position + off, norm)
+            end)
+        end
+        task.wait(0.005)
+    end
+end
 
---// GUN
-local function GetGun()
-    if not Character then return end
+local function doFX()
+    if CONFIG.silent or not gunFire then return end
+    local char = player.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    pcall(function() gunFire:FireServer(root.Position, root.CFrame.LookVector) end)
+end
 
-    for _,v in pairs(Character:GetChildren()) do
-        if v:IsA("Tool") then
-            return v
+local function refillAmmo()
+    if not CONFIG.infAmmo then return end
+    local char = player.Character
+    if not char then return end
+    local tool = char:FindFirstChildOfClass("Tool")
+    if not tool then return end
+    
+    for _, child in ipairs(tool:GetDescendants()) do
+        if child:IsA("NumberValue") or child:IsA("IntValue") then
+            local n = child.Name:lower()
+            if n:find("ammo") or n:find("bullet") or n:find("clip") or n:find("mag") then
+                local max = tool:FindFirstChild("MaxAmmo") or tool:FindFirstChild("MaxBullets")
+                child.Value = max and max.Value or 999
+            end
         end
     end
 end
 
---// AURA BUTTON
-AuraBtn.MouseButton1Click:Connect(function()
-    Aura = not Aura
+local function startAura()
+    if auraOn then return end
+    auraOn = true
+    
+    auraConn = RunService.Heartbeat:Connect(function()
+        if not auraOn then return end
+        local char = player.Character
+        if not char then return end
+        local tool = char:FindFirstChildOfClass("Tool")
+        if not tool then return end
+        
+        refillAmmo()
+        doFX()
+        
+        local enemies = findEnemies(CONFIG.radius)
+        for _, e in ipairs(enemies) do
+            fireAtEnemy(e)
+            kills = kills + 1
+        end
+        if #enemies > 0 then task.wait(CONFIG.fireRate) end
+    end)
+    print("[MIU] Kill Aura STARTED")
+end
 
-    if Aura then
-        AuraBtn.Text = "KILL AURA : ON"
+local function stopAura()
+    auraOn = false
+    if auraConn then auraConn:Disconnect() auraConn = nil end
+    print("[MIU] Kill Aura STOPPED")
+end
+
+-- ==========================================
+-- FLY
+-- ==========================================
+local function startFly()
+    if flyOn then return end
+    local char = player.Character
+    if not char then return end
+    local hum = char:FindFirstChild("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not root then return end
+    
+    flyOn = true
+    hum.PlatformStand = true
+    hum.AutoRotate = false
+    
+    bGyro = Instance.new("BodyGyro")
+    bGyro.P = 9e4; bGyro.D = 9e3
+    bGyro.MaxTorque = Vector3.new(9e5,9e5,9e5)
+    bGyro.CFrame = camera.CFrame
+    bGyro.Parent = root
+    
+    bVel = Instance.new("BodyVelocity")
+    bVel.Velocity = Vector3.new(0,0,0)
+    bVel.MaxForce = Vector3.new(9e5,9e5,9e5)
+    bVel.Parent = root
+    
+    flyConn = RunService.RenderStepped:Connect(function()
+        if not flyOn or not char or not root then stopFly() return end
+        
+        local dir = Vector3.new(0,0,0)
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + camera.CFrame.LookVector * Vector3.new(1,0,1) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - camera.CFrame.LookVector * Vector3.new(1,0,1) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - camera.CFrame.RightVector * Vector3.new(1,0,1) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + camera.CFrame.RightVector * Vector3.new(1,0,1) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0,1,0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then dir = dir + Vector3.new(0,-1,0) end
+        
+        if dir.Magnitude > 0 then dir = dir.Unit * CONFIG.flySpeed end
+        bVel.Velocity = dir
+        bGyro.CFrame = camera.CFrame
+    end)
+    print("[MIU] Fly STARTED")
+end
+
+local function stopFly()
+    flyOn = false
+    if flyConn then flyConn:Disconnect() flyConn = nil end
+    if bGyro then bGyro:Destroy() bGyro = nil end
+    if bVel then bVel:Destroy() bVel = nil end
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChild("Humanoid")
+        if hum then hum.PlatformStand = false; hum.AutoRotate = true end
+    end
+    print("[MIU] Fly STOPPED")
+end
+
+-- ==========================================
+-- GUI CHÍNH - PINK DRAGGABLE
+-- ==========================================
+local gui = Instance.new("ScreenGui")
+gui.Name = "MIU_VIP"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.DisplayOrder = 100
+gui.Parent = playerGui
+
+-- Main container
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0, 320, 0, 420)
+main.Position = UDim2.new(0.5, -160, 0.5, -210)
+main.BackgroundColor3 = Color3.fromRGB(20, 8, 25)
+main.BackgroundTransparency = 0.05
+main.BorderSizePixel = 0
+main.Active = true
+main.Draggable = true  -- CÓ THỂ DI CHUYỂN
+main.ClipsDescendants = true
+main.Parent = gui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 16)
+mainCorner.Parent = main
+
+-- Border glow
+local border = Instance.new("Frame")
+border.Size = UDim2.new(1, 4, 1, 4)
+border.Position = UDim2.new(0, -2, 0, -2)
+border.BackgroundColor3 = Color3.fromRGB(255, 50, 150)
+border.BackgroundTransparency = 0.3
+border.BorderSizePixel = 0
+border.ZIndex = 0
+local bCorner = Instance.new("UICorner")
+bCorner.CornerRadius = UDim.new(0, 17)
+bCorner.Parent = border
+border.Parent = main
+
+-- HEADER
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, 50)
+header.BackgroundColor3 = Color3.fromRGB(255, 50, 150)
+header.BackgroundTransparency = 0.15
+header.BorderSizePixel = 0
+local hCorner = Instance.new("UICorner")
+hCorner.CornerRadius = UDim.new(0, 16)
+hCorner.Parent = header
+header.Parent = main
+
+-- Gradient
+local grad = Instance.new("UIGradient")
+grad.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 50, 150)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 80, 180)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 30, 120))
+})
+grad.Parent = header
+
+local logo = Instance.new("TextLabel")
+logo.Size = UDim2.new(0.7, 0, 1, 0)
+logo.Position = UDim2.new(0.05, 0, 0, 0)
+logo.BackgroundTransparency = 1
+logo.Text = "🌸 MIU HUB"
+logo.TextColor3 = Color3.fromRGB(255, 255, 255)
+logo.Font = Enum.Font.GothamBold
+logo.TextSize = 20
+logo.TextXAlignment = Enum.TextXAlignment.Left
+logo.Parent = header
+
+-- Close
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 26, 0, 26)
+closeBtn.Position = UDim2.new(1, -32, 0, 12)
+closeBtn.BackgroundColor3 = Color3.fromRGB(255, 40, 40)
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 13
+local cCorner = Instance.new("UICorner")
+cCorner.CornerRadius = UDim.new(0, 6)
+cCorner.Parent = closeBtn
+closeBtn.Parent = header
+
+-- Minimize
+local minBtn = Instance.new("TextButton")
+minBtn.Size = UDim2.new(0, 26, 0, 26)
+minBtn.Position = UDim2.new(1, -64, 0, 12)
+minBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+minBtn.Text = "−"
+minBtn.TextColor3 = Color3.fromRGB(255,255,255)
+minBtn.Font = Enum.Font.GothamBold
+minBtn.TextSize = 15
+local mCorner = Instance.new("UICorner")
+mCorner.CornerRadius = UDim.new(0, 6)
+mCorner.Parent = minBtn
+minBtn.Parent = header
+
+-- Close & Minimize events
+closeBtn.MouseButton1Click:Connect(function()
+    stopAura()
+    stopFly()
+    gui:Destroy()
+end)
+
+local minimized = false
+local origSize = main.Size
+minBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        main.Size = UDim2.new(0, 320, 0, 50)
+        minBtn.Text = "+"
+        -- Ẩn nội dung
+        if contentFrame then contentFrame.Visible = false end
     else
-        AuraBtn.Text = "KILL AURA : OFF"
+        main.Size = origSize
+        minBtn.Text = "−"
+        if contentFrame then contentFrame.Visible = true end
     end
 end)
 
---// FLY FUNCTIONS
-local FlyLoop
+-- TAB SYSTEM
+local tabBar = Instance.new("Frame")
+tabBar.Size = UDim2.new(1, 0, 0, 35)
+tabBar.Position = UDim2.new(0, 0, 0, 50)
+tabBar.BackgroundColor3 = Color3.fromRGB(30, 15, 35)
+tabBar.BackgroundTransparency = 0.1
+tabBar.BorderSizePixel = 0
+tabBar.Parent = main
 
-local function EnableFly()
-    local HRP = Character:WaitForChild("HumanoidRootPart")
+local tabs = {"🎯 Aura", "🕊 Fly", "⚙ Config"}
+local tabBtns = {}
+local currentTab = 1
+local contentFrame = nil
 
-    BV = Instance.new("BodyVelocity")
-    BV.MaxForce = Vector3.new(math.huge,math.huge,math.huge)
-    BV.Velocity = Vector3.zero
-    BV.Parent = HRP
+-- Content area
+contentFrame = Instance.new("Frame")
+contentFrame.Size = UDim2.new(1, 0, 1, -85)
+contentFrame.Position = UDim2.new(0, 0, 0, 85)
+contentFrame.BackgroundTransparency = 1
+contentFrame.BorderSizePixel = 0
+contentFrame.Parent = main
 
-    BG = Instance.new("BodyGyro")
-    BG.MaxTorque = Vector3.new(math.huge,math.huge,math.huge)
-    BG.CFrame = HRP.CFrame
-    BG.Parent = HRP
-
-    FlyLoop = RunService.RenderStepped:Connect(function()
-        if not Fly then return end
-
-        local cam = workspace.CurrentCamera
-        local move = Vector3.zero
-
-        if UIS:IsKeyDown(Enum.KeyCode.W) then
-            move += cam.CFrame.LookVector
-        end
-
-        if UIS:IsKeyDown(Enum.KeyCode.S) then
-            move -= cam.CFrame.LookVector
-        end
-
-        if UIS:IsKeyDown(Enum.KeyCode.A) then
-            move -= cam.CFrame.RightVector
-        end
-
-        if UIS:IsKeyDown(Enum.KeyCode.D) then
-            move += cam.CFrame.RightVector
-        end
-
-        BV.Velocity = move * FlySpeed
-        BG.CFrame = cam.CFrame
+-- Tạo tab buttons
+for i, name in ipairs(tabs) do
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1/3, -2, 1, -4)
+    btn.Position = UDim2.new((i-1)/3, 2, 0, 2)
+    btn.Text = name
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 12
+    btn.BackgroundTransparency = 0.2
+    btn.BorderSizePixel = 0
+    local tCorner = Instance.new("UICorner")
+    tCorner.CornerRadius = UDim.new(0, 6)
+    tCorner.Parent = btn
+    btn.Parent = tabBar
+    tabBtns[i] = btn
+    
+    btn.MouseButton1Click:Connect(function()
+        currentTab = i
+        switchTab(i)
     end)
 end
 
-local function DisableFly()
-    if FlyLoop then
-        FlyLoop:Disconnect()
+-- Hàm chuyển tab
+function switchTab(idx)
+    -- Update tab buttons
+    for i, btn in ipairs(tabBtns) do
+        if i == idx then
+            btn.BackgroundColor3 = Color3.fromRGB(255, 50, 150)
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(40, 20, 50)
+            btn.TextColor3 = Color3.fromRGB(180, 140, 190)
+        end
     end
-
-    if BV then
-        BV:Destroy()
+    
+    -- Clear content
+    for _, child in ipairs(contentFrame:GetChildren()) do
+        child:Destroy()
     end
-
-    if BG then
-        BG:Destroy()
+    
+    -- ========= TAB 1: KILL AURA =========
+    if idx == 1 then
+        local y = 10
+        
+        -- Status
+        local st = createLabel(contentFrame, "📊 Status: OFF | Range: " .. CONFIG.radius, 0.05, y, Color3.fromRGB(255, 180, 210), 12)
+        y = y + 30
+        
+        -- Toggle button
+        local toggleBtn = createButton(contentFrame, "▶ ACTIVATE KILL AURA", 0.05, y, 0.9, 38, Color3.fromRGB(255, 60, 160), 13)
+        y = y + 46
+        
+        toggleBtn.MouseButton1Click:Connect(function()
+            if not auraOn then
+                startAura()
+                toggleBtn.Text = "⏹ DEACTIVATE AURA"
+                toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+                st.Text = "📊 Status: ON | Range: " .. CONFIG.radius
+                st.TextColor3 = Color3.fromRGB(100, 255, 100)
+            else
+                stopAura()
+                toggleBtn.Text = "▶ ACTIVATE KILL AURA"
+                toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 160)
+                st.Text = "📊 Status: OFF | Range: " .. CONFIG.radius
+                st.TextColor3 = Color3.fromRGB(255, 180, 210)
+            end
+        end)
+        
+        -- Radius input
+        createLabel(contentFrame, "🎯 Radius:", 0.05, y, Color3.fromRGB(200, 180, 210), 12)
+        local radInput = createInput(contentFrame, tostring(CONFIG.radius), 0.5, y, 0.45, 28)
+        y = y + 36
+        
+        radInput.FocusLost:Connect(function()
+            local v = tonumber(radInput.Text)
+            if v then
+                CONFIG.radius = math.clamp(v, CONFIG.minRad, CONFIG.maxRad)
+                radInput.Text = tostring(CONFIG.radius)
+                st.Text = (auraOn and "📊 Status: ON" or "📊 Status: OFF") .. " | Range: " .. CONFIG.radius
+            else
+                radInput.Text = tostring(CONFIG.radius)
+            end
+        end)
+        
+        -- Multi hit
+        createLabel(contentFrame, "💥 Multi Hit:", 0.05, y, Color3.fromRGB(200, 180, 210), 12)
+        local multiInput = createInput(contentFrame, tostring(CONFIG.multiHit), 0.5, y, 0.45, 28)
+        y = y + 36
+        
+        multiInput.FocusLost:Connect(function()
+            local v = tonumber(multiInput.Text)
+            if v then
+                CONFIG.multiHit = math.floor(math.clamp(v, 1, 20))
+                multiInput.Text = tostring(CONFIG.multiHit)
+            else
+                multiInput.Text = tostring(CONFIG.multiHit)
+            end
+        end)
+        
+        -- Headshot toggle
+        local hsBtn = createButton(contentFrame, "🎯 Headshot Mode: ON", 0.05, y, 0.9, 30, Color3.fromRGB(0, 180, 80), 11)
+        y = y + 38
+        
+        hsBtn.MouseButton1Click:Connect(function()
+            CONFIG.headshot = not CONFIG.headshot
+            if CONFIG.headshot then
+                hsBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+                hsBtn.Text = "🎯 Headshot Mode: ON"
+            else
+                hsBtn.BackgroundColor3 = Color3.fromRGB(120, 60, 60)
+                hsBtn.Text = "🎯 Headshot Mode: OFF"
+            end
+        end)
+        
+        -- Ammo toggle
+        local ammoBtn = createButton(contentFrame, "🔫 Infinite Ammo: ON", 0.05, y, 0.9, 30, Color3.fromRGB(0, 180, 80), 11)
+        y = y + 38
+        
+        ammoBtn.MouseButton1Click:Connect(function()
+            CONFIG.infAmmo = not CONFIG.infAmmo
+            if CONFIG.infAmmo then
+                ammoBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+                ammoBtn.Text = "🔫 Infinite Ammo: ON"
+            else
+                ammoBtn.BackgroundColor3 = Color3.fromRGB(120, 60, 60)
+                ammoBtn.Text = "🔫 Infinite Ammo: OFF"
+            end
+        end)
+        
+        -- Silent toggle
+        local silentBtn = createButton(contentFrame, "🤫 Silent Mode: OFF", 0.05, y, 0.9, 30, Color3.fromRGB(120, 60, 60), 11)
+        y = y + 38
+        
+        silentBtn.MouseButton1Click:Connect(function()
+            CONFIG.silent = not CONFIG.silent
+            if CONFIG.silent then
+                silentBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+                silentBtn.Text = "🤫 Silent Mode: ON"
+            else
+                silentBtn.BackgroundColor3 = Color3.fromRGB(120, 60, 60)
+                silentBtn.Text = "🤫 Silent Mode: OFF"
+            end
+        end)
+    end
+    
+    -- ========= TAB 2: FLY =========
+    if idx == 2 then
+        local y = 10
+        
+        local st = createLabel(contentFrame, "📊 Status: OFF | Speed: " .. CONFIG.flySpeed, 0.05, y, Color3.fromRGB(255, 180, 210), 12)
+        y = y + 30
+        
+        local flyBtn = createButton(contentFrame, "▶ ACTIVATE FLY", 0.05, y, 0.9, 38, Color3.fromRGB(255, 60, 160), 13)
+        y = y + 46
+        
+        flyBtn.MouseButton1Click:Connect(function()
+            if not flyOn then
+                startFly()
+                flyBtn.Text = "⏹ DEACTIVATE FLY"
+                flyBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+                st.Text = "📊 Status: ON | Speed: " .. CONFIG.flySpeed
+                st.TextColor3 = Color3.fromRGB(100, 255, 100)
+            else
+                stopFly()
+                flyBtn.Text = "▶ ACTIVATE FLY"
+                flyBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 160)
+                st.Text = "📊 Status: OFF | Speed: " .. CONFIG.flySpeed
+                st.TextColor3 = Color3.fromRGB(255, 180, 210)
+            end
+        end)
+        
+        createLabel(contentFrame, "🚀 Speed:", 0.05, y, Color3.fromRGB(200, 180, 210), 12)
+        local spdInput = createInput(contentFrame, tostring(CONFIG.flySpeed), 0.5, y, 0.45, 28)
+        y = y + 36
+        
+        spdInput.FocusLost:Connect(function()
+            local v = tonumber(spdInput.Text)
+            if v then
+                CONFIG.flySpeed = math.clamp(v, CONFIG.minSpeed, CONFIG.maxSpeed)
+                spdInput.Text = tostring(CONFIG.flySpeed)
+                st.Text = (flyOn and "📊 Status: ON" or "📊 Status: OFF") .. " | Speed: " .. CONFIG.flySpeed
+            else
+                spdInput.Text = tostring(CONFIG.flySpeed)
+            end
+        end)
+        
+        -- Controls info
+        local ctrl = Instance.new("TextLabel")
+        ctrl.Size = UDim2.new(0.9, 0, 0, 50)
+        ctrl.Position = UDim2.new(0.05, 0, 0, y)
+        ctrl.BackgroundTransparency = 1
+        ctrl.Text = "🕹 Controls:\nW A S D = Move\nSPACE = Up | SHIFT = Down"
+        ctrl.TextColor3 = Color3.fromRGB(200, 160, 210)
+        ctrl.Font = Enum.Font.Gotham
+        ctrl.TextSize = 11
+        ctrl.TextXAlignment = Enum.TextXAlignment.Left
+        ctrl.TextWrapped = true
+        ctrl.Parent = contentFrame
+    end
+    
+    -- ========= TAB 3: CONFIG =========
+    if idx == 3 then
+        local y = 10
+        
+        -- Stats
+        local statsLabel = Instance.new("TextLabel")
+        statsLabel.Size = UDim2.new(0.9, 0, 0, 30)
+        statsLabel.Position = UDim2.new(0.05, 0, 0, y)
+        statsLabel.BackgroundTransparency = 1
+        statsLabel.Text = "📊 Session Stats\nKills: " .. kills .. " | Aura: OFF | Fly: OFF"
+        statsLabel.TextColor3 = Color3.fromRGB(255, 180, 210)
+        statsLabel.Font = Enum.Font.Gotham
+        statsLabel.TextSize = 12
+        statsLabel.TextXAlignment = Enum.TextXAlignment.Left
+        statsLabel.TextWrapped = true
+        statsLabel.Parent = contentFrame
+        y = y + 40
+        
+        -- Credit
+        local credit = Instance.new("TextLabel")
+        credit.Size = UDim2.new(0.9, 0, 0, 60)
+        credit.Position = UDim2.new(0.05, 0, 0, y)
+        credit.BackgroundTransparency = 1
+        credit.Text = "🌸 MIU HUB v3.0 VIP\nSurvive Zombie Arena\nThanks for using! ❤️"
+        credit.TextColor3 = Color3.fromRGB(255, 130, 190)
+        credit.Font = Enum.Font.Gotham
+        credit.TextSize = 13
+        credit.TextXAlignment = Enum.TextXAlignment.Left
+        credit.TextWrapped = true
+        credit.Parent = contentFrame
+        y = y + 70
+        
+        -- Reset button
+        local resetBtn = createButton(contentFrame, "🔄 STOP ALL", 0.05, y, 0.9, 36, Color3.fromRGB(200, 40, 40), 13)
+        
+        resetBtn.MouseButton1Click:Connect(function()
+            stopAura()
+            stopFly()
+            kills = 0
+            statsLabel.Text = "📊 Session Stats\nKills: 0 | Aura: OFF | Fly: OFF"
+            
+            -- Update UI in other tabs would need a proper system, but basic reset works
+        end)
     end
 end
 
---// FLY BUTTON
-FlyBtn.MouseButton1Click:Connect(function()
-    Fly = not Fly
+-- Helper functions
+function createLabel(parent, text, x, y, color, size)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(0.5, 0, 0, 22)
+    lbl.Position = UDim2.new(x, 0, 0, y)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.TextColor3 = color or Color3.fromRGB(255, 255, 255)
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = size or 12
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = parent
+    return lbl
+end
 
-    if Fly then
-        FlyBtn.Text = "FLY : ON"
-        EnableFly()
-    else
-        FlyBtn.Text = "FLY : OFF"
-        DisableFly()
+function createButton(parent, text, x, y, w, h, color, size)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(w, 0, 0, h)
+    btn.Position = UDim2.new(x, 0, 0, y)
+    btn.BackgroundColor3 = color or Color3.fromRGB(255, 60, 160)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = size or 12
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = btn
+    btn.Parent = parent
+    return btn
+end
+
+function createInput(parent, text, x, y, w, h)
+    local input = Instance.new("TextBox")
+    input.Size = UDim2.new(w, 0, 0, h)
+    input.Position = UDim2.new(x, 0, 0, y)
+    input.BackgroundColor3 = Color3.fromRGB(200, 50, 140)
+    input.Text = text
+    input.TextColor3 = Color3.fromRGB(255, 255, 255)
+    input.Font = Enum.Font.GothamBold
+    input.TextSize = 13
+    input.PlaceholderText = "Value"
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 7)
+    corner.Parent = input
+    input.Parent = parent
+    return input
+end
+
+-- Initialize first tab
+switchTab(1)
+
+-- ==========================================
+-- AUTO-RESPAWN HANDLER
+-- ==========================================
+player.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if auraOn then
+        stopAura()
+        task.wait(0.2)
+        startAura()
+    end
+    if flyOn then
+        stopFly()
+        task.wait(0.2)
+        startFly()
     end
 end)
 
---// KILL AURA LOOP
-RunService.RenderStepped:Connect(function()
-    if not Aura then return end
-    if not Character then return end
-
-    local HRP = Character:FindFirstChild("HumanoidRootPart")
-    if not HRP then return end
-
-    local Gun = GetGun()
-    if not Gun then return end
-
-    for _,v in pairs(workspace:GetDescendants()) do
-        if v:IsA("Model")
-        and v ~= Character
-        and string.find(v.Name:lower(),"zombie") then
-
-            local Hum = v:FindFirstChildOfClass("Humanoid")
-            local Root = v:FindFirstChild("HumanoidRootPart")
-
-            if Hum and Root and Hum.Health > 0 then
-                local Dist = (HRP.Position - Root.Position).Magnitude
-
-                if Dist <= Range then
-                    pcall(function()
-
-                        GunFire:FireServer(
-                            Gun,
-                            Root.Position,
-                            Root
-                        )
-
-                        GunHit:FireServer(
-                            v,
-                            Hum,
-                            Root,
-                            Root.Position
-                        )
-
-                    end)
+-- ==========================================
+-- STATS UPDATER
+-- ==========================================
+spawn(function()
+    while task.wait(1) do
+        if gui and gui.Parent then
+            -- Update stats in config tab if visible
+            local configTab = contentFrame:FindFirstChildOfClass("TextLabel")
+            if configTab and currentTab == 3 then
+                -- Find and update stats label
+                for _, child in ipairs(contentFrame:GetChildren()) do
+                    if child:IsA("TextLabel") and child.Text:find("Session Stats") then
+                        child.Text = "📊 Session Stats\nKills: " .. kills .. " | Aura: " .. (auraOn and "ON" or "OFF") .. " | Fly: " .. (flyOn and "ON" or "OFF")
+                    end
                 end
             end
         end
     end
 end)
+
+-- ==========================================
+-- HOÀN TẤT
+-- ==========================================
+print("========================================")
+print("  🌸 MIU HUB VIP v3.0")
+print("  Survive Zombie Arena")
+print("  ✅ Loaded successfully!")
+print("========================================")
+print("  [Kill Aura] Radius: " .. CONFIG.radius)
+print("  [Fly] Speed: " .. CONFIG.flySpeed)
+print("  [Ammo] Infinite: " .. tostring(CONFIG.infAmmo))
+print("========================================")
