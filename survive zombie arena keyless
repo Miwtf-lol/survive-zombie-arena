@@ -1,6 +1,6 @@
 -- Miu Hub -- Transparent Pink GUI
 -- Fly + Zombie ESP + Kill Aura
--- Draggable | Minimizable | Dedicated Sections
+-- Draggable | Minimizable | Compact Edition
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,6 +8,7 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
@@ -31,6 +32,7 @@ Window.Position = UDim2.new(0.5, -170, 0.5, -215)
 Window.BackgroundColor3 = Color3.fromRGB(255,105,180)
 Window.BackgroundTransparency = 0.15
 Window.BorderSizePixel = 0
+Window.ClipsDescendants = true
 Window.Parent = MiuHub
 
 local WindowCorner = Instance.new("UICorner")
@@ -57,7 +59,7 @@ TitleCorner.CornerRadius = UDim.new(0,14)
 TitleCorner.Parent = TitleBar
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1,-80,1,0)
+Title.Size = UDim2.new(1,-90,1,0)
 Title.Position = UDim2.new(0,14,0,0)
 Title.BackgroundTransparency = 1
 Title.Text = "🌸 Miu Hub"
@@ -67,8 +69,24 @@ Title.TextSize = 18
 Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TitleBar
 
--- Close Button
+-- Minimize Button
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0,30,0,30)
+MinBtn.Position = UDim2.new(1,-72,0,6)
+MinBtn.BackgroundColor3 = Color3.fromRGB(255,80,120)
+MinBtn.BackgroundTransparency = 0.5
+MinBtn.Text = "—"
+MinBtn.TextColor3 = Color3.fromRGB(255,255,255)
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 18
+MinBtn.BorderSizePixel = 0
+MinBtn.Parent = TitleBar
 
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0,8)
+MinCorner.Parent = MinBtn
+
+-- Close Button
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Size = UDim2.new(0,30,0,30)
 CloseBtn.Position = UDim2.new(1,-36,0,6)
@@ -85,10 +103,6 @@ local CloseCorner = Instance.new("UICorner")
 CloseCorner.CornerRadius = UDim.new(0,8)
 CloseCorner.Parent = CloseBtn
 
-CloseBtn.MouseButton1Click:Connect(function()
-    MiuHub:Destroy()
-end)
-
 -- ==================== DRAG SYSTEM ====================
 
 local dragging = false
@@ -101,7 +115,6 @@ TitleBar.InputBegan:Connect(function(input)
         dragging = true
         dragStart = input.Position
         startPos = Window.Position
-
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 dragging = false
@@ -128,6 +141,48 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
+-- ==================== MINIMIZE SYSTEM ====================
+
+local minimized = false
+local fullSize = UDim2.new(0, 340, 0, 430)
+local miniSize = UDim2.new(0, 340, 0, 42)
+
+MinBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    local targetSize = minimized and miniSize or fullSize
+    local tween = TweenService:Create(Window, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = targetSize})
+    tween:Play()
+    
+    -- Ẩn/hiện MainContent khi minimize
+    MainContent.Visible = not minimized
+end)
+
+-- ==================== CLOSE / CLEANUP ====================
+
+CloseBtn.MouseButton1Click:Connect(function()
+    -- Fly cleanup
+    if Flying then
+        Flying = false
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.PlatformStand = false
+            end
+        end
+    end
+    
+    -- ESP cleanup
+    for _, v in pairs(ESPFolder:GetChildren()) do
+        v:Destroy()
+    end
+    
+    -- Kill Aura cleanup
+    AuraEnabled = false
+    
+    MiuHub:Destroy()
+end)
+
 -- ==================== MAIN CONTENT ====================
 
 local MainContent = Instance.new("ScrollingFrame")
@@ -138,6 +193,7 @@ MainContent.BackgroundColor3 = Color3.fromRGB(255,150,200)
 MainContent.BackgroundTransparency = 0.85
 MainContent.BorderSizePixel = 0
 MainContent.ScrollBarThickness = 4
+MainContent.ScrollBarImageColor3 = Color3.fromRGB(255,80,160)
 MainContent.CanvasSize = UDim2.new(0,0,0,0)
 MainContent.AutomaticCanvasSize = Enum.AutomaticSize.Y
 MainContent.Parent = Window
@@ -162,7 +218,6 @@ MainPadding.Parent = MainContent
 -- ==================== UI FUNCTIONS ====================
 
 local function CreateSectionBox(parent, title)
-
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1,0,0,0)
     frame.BackgroundColor3 = Color3.fromRGB(255,182,193)
@@ -200,48 +255,19 @@ local function CreateSectionBox(parent, title)
     return frame
 end
 
-local function CreateButton(parent, text, callback)
-
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1,0,0,34)
-    btn.BackgroundColor3 = Color3.fromRGB(255,80,160)
-    btn.BackgroundTransparency = 0.4
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(255,255,255)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
-    btn.BorderSizePixel = 0
-    btn.Parent = parent
-
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0,8)
-    btnCorner.Parent = btn
-
-    btn.MouseButton1Click:Connect(function()
-        if callback then
-            callback()
-        end
-    end)
-
-    return btn
-end
-
 local function CreateLabel(parent, text)
-
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1,0,0,24)
+    lbl.Size = UDim2.new(1,0,0,20)
     lbl.BackgroundTransparency = 1
     lbl.Text = text
     lbl.TextColor3 = Color3.fromRGB(255,255,255)
     lbl.Font = Enum.Font.Gotham
-    lbl.TextSize = 13
+    lbl.TextSize = 12
     lbl.Parent = parent
-
     return lbl
 end
 
 local function CreateToggle(parent, text, default, callback)
-
     local state = default
 
     local frame = Instance.new("Frame")
@@ -271,6 +297,7 @@ local function CreateToggle(parent, text, default, callback)
     toggle.Position = UDim2.new(1,-44,0,5)
     toggle.BackgroundColor3 = state and Color3.fromRGB(255,60,140) or Color3.fromRGB(80,80,80)
     toggle.Text = ""
+    toggle.BorderSizePixel = 0
     toggle.Parent = frame
 
     local tCorner = Instance.new("UICorner")
@@ -278,17 +305,38 @@ local function CreateToggle(parent, text, default, callback)
     tCorner.Parent = toggle
 
     toggle.MouseButton1Click:Connect(function()
-
         state = not state
-
-        toggle.BackgroundColor3 =
-            state and Color3.fromRGB(255,60,140)
-            or Color3.fromRGB(80,80,80)
-
+        toggle.BackgroundColor3 = state and Color3.fromRGB(255,60,140) or Color3.fromRGB(80,80,80)
         if callback then
             callback(state)
         end
     end)
+    
+    return frame
+end
+
+local function CreateButton(parent, text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1,0,0,30)
+    btn.BackgroundColor3 = Color3.fromRGB(255,80,160)
+    btn.BackgroundTransparency = 0.4
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    btn.BorderSizePixel = 0
+    btn.Parent = parent
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0,8)
+    btnCorner.Parent = btn
+
+    btn.MouseButton1Click:Connect(function()
+        if callback then
+            callback()
+        end
+    end)
+    return btn
 end
 
 -- ==================== FLY SECTION ====================
@@ -300,16 +348,38 @@ local FlySpeed = 50
 
 CreateToggle(FlySection,"Enable Fly",false,function(val)
     Flying = val
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.PlatformStand = val
+        end
+    end
 end)
 
-CreateLabel(FlySection,"Fly Speed: 50")
+local SpeedLabel = CreateLabel(FlySection,"Fly Speed: "..FlySpeed)
 
-CreateButton(FlySection,"Increase Fly Speed",function()
+CreateButton(FlySection,"Increase Fly Speed +10",function()
     FlySpeed = FlySpeed + 10
+    SpeedLabel.Text = "Fly Speed: "..FlySpeed
 end)
 
-RunService.RenderStepped:Connect(function()
+CreateButton(FlySection,"Decrease Fly Speed -10",function()
+    FlySpeed = math.max(10, FlySpeed - 10)
+    SpeedLabel.Text = "Fly Speed: "..FlySpeed
+end)
 
+-- Fly Noclip
+local NoclipEnabled = false
+
+CreateToggle(FlySection,"Noclip (Fly thru walls)",false,function(val)
+    NoclipEnabled = val
+end)
+
+local noclipConn = nil
+
+-- Fly logic
+RunService.RenderStepped:Connect(function()
     if not Flying then
         return
     end
@@ -329,9 +399,25 @@ RunService.RenderStepped:Connect(function()
 
     hrp.Velocity = Vector3.new(
         move.X * FlySpeed,
-        0,
+        (UserInputService:IsKeyDown(Enum.KeyCode.Space) and FlySpeed or (UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) and -FlySpeed or 0)),
         move.Z * FlySpeed
     )
+end)
+
+-- Noclip logic
+RunService.Stepped:Connect(function()
+    if not NoclipEnabled or not Flying then
+        return
+    end
+    
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") and part.CanCollide then
+            part.CanCollide = false
+        end
+    end
 end)
 
 -- ==================== ESP SECTION ====================
@@ -339,33 +425,89 @@ end)
 local ESPSection = CreateSectionBox(MainContent,"Zombie ESP")
 
 local ESPEnabled = false
-
-CreateToggle(ESPSection,"Enable Zombie ESP",false,function(val)
-    ESPEnabled = val
-end)
-
-CreateLabel(ESPSection,"ESP Color: Pink")
-
 local ESPFolder = Instance.new("Folder")
 ESPFolder.Name = "ZombieESP"
 ESPFolder.Parent = CoreGui
 
-local function CreateESP(model)
-
-    if model:FindFirstChild("MiuESP") then
-        return
+CreateToggle(ESPSection,"Enable Zombie ESP",false,function(val)
+    ESPEnabled = val
+    -- Clean up when disabling
+    if not val then
+        for _, v in pairs(ESPFolder:GetChildren()) do
+            v:Destroy()
+        end
     end
+end)
 
+CreateLabel(ESPSection,"💖 ESP: Pink Highlight + Billboard")
+
+local function CreateESP(model)
+    -- Skip if already has ESP
+    if model:FindFirstChild("MiuESP_Highlight") then
+        return true
+    end
+    
+    -- Check if it's a zombie (has Humanoid)
+    local hum = model:FindFirstChildOfClass("Humanoid")
+    if not hum then return false end
+    
+    local hrp = model:FindFirstChild("HumanoidRootPart") or model:FindFirstChild("Head") or model:FindFirstChild("Torso")
+    if not hrp then return false end
+    
+    -- Highlight
     local hl = Instance.new("Highlight")
-    hl.Name = "MiuESP"
+    hl.Name = "MiuESP_Highlight"
     hl.FillColor = Color3.fromRGB(255,80,160)
     hl.OutlineColor = Color3.fromRGB(255,255,255)
     hl.FillTransparency = 0.5
+    hl.OutlineTransparency = 0.3
     hl.Parent = model
+    
+    -- Billboard with name + health
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "MiuESP_Billboard"
+    billboard.Parent = model
+    billboard.Size = UDim2.new(0, 160, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Adornee = hrp
+    
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Parent = billboard
+    nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = model.Name
+    nameLabel.TextColor3 = Color3.fromRGB(255, 150, 200)
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextSize = 14
+    nameLabel.TextStrokeTransparency = 0.5
+    
+    local healthLabel = Instance.new("TextLabel")
+    healthLabel.Parent = billboard
+    healthLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    healthLabel.Position = UDim2.new(0, 0, 0.5, 0)
+    healthLabel.BackgroundTransparency = 1
+    healthLabel.Text = "❤️ "..math.floor(hum.Health)
+    healthLabel.TextColor3 = Color3.fromRGB(255, 80, 120)
+    healthLabel.Font = Enum.Font.GothamBold
+    healthLabel.TextSize = 14
+    healthLabel.TextStrokeTransparency = 0.5
+    
+    -- Health updater
+    local conn
+    conn = hum:GetPropertyChangedSignal("Health"):Connect(function()
+        if healthLabel and healthLabel.Parent then
+            healthLabel.Text = "❤️ "..math.floor(hum.Health)
+        else
+            conn:Disconnect()
+        end
+    end)
+    
+    return true
 end
 
+-- ESP Scan loop
 RunService.RenderStepped:Connect(function()
-
     if not ESPEnabled then
         return
     end
@@ -373,9 +515,19 @@ RunService.RenderStepped:Connect(function()
     local folder = Workspace:FindFirstChild("Zombies_Local")
 
     if folder then
-        for _,zombie in pairs(folder:GetChildren()) do
+        for _, zombie in pairs(folder:GetChildren()) do
             if zombie:IsA("Model") then
                 CreateESP(zombie)
+            end
+        end
+    end
+    
+    -- Also scan all models in workspace (fallback)
+    for _, obj in pairs(Workspace:GetChildren()) do
+        if obj:IsA("Model") and obj ~= LocalPlayer.Character then
+            local hum = obj:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then
+                CreateESP(obj)
             end
         end
     end
@@ -392,14 +544,20 @@ CreateToggle(KASection,"Enable Kill Aura",false,function(val)
     AuraEnabled = val
 end)
 
-CreateLabel(KASection,"Aura Range: 50")
+local RangeLabel = CreateLabel(KASection,"Aura Range: "..AuraRange)
 
-CreateButton(KASection,"Increase Aura Range",function()
+CreateButton(KASection,"Increase Range +10",function()
     AuraRange = AuraRange + 10
+    RangeLabel.Text = "Aura Range: "..AuraRange
 end)
 
-RunService.RenderStepped:Connect(function()
+CreateButton(KASection,"Decrease Range -10",function()
+    AuraRange = math.max(10, AuraRange - 10)
+    RangeLabel.Text = "Aura Range: "..AuraRange
+end)
 
+-- Kill Aura logic
+RunService.RenderStepped:Connect(function()
     if not AuraEnabled then
         return
     end
@@ -413,16 +571,11 @@ RunService.RenderStepped:Connect(function()
     local folder = Workspace:FindFirstChild("Zombies_Local")
 
     if folder then
-
-        for _,zombie in pairs(folder:GetChildren()) do
-
+        for _, zombie in pairs(folder:GetChildren()) do
             local zhrp = zombie:FindFirstChild("HumanoidRootPart")
             local hum = zombie:FindFirstChildOfClass("Humanoid")
-
-            if zhrp and hum then
-
+            if zhrp and hum and hum.Health > 0 then
                 local dist = (hrp.Position - zhrp.Position).Magnitude
-
                 if dist <= AuraRange then
                     hum.Health = 0
                 end
@@ -433,8 +586,9 @@ end)
 
 -- ==================== FOOTER ====================
 
-CreateLabel(MainContent,"🌸 Miu Hub Loaded")
-CreateLabel(MainContent,"Pink Transparent UI")
-CreateLabel(MainContent,"Fly + ESP + Kill Aura")
+CreateLabel(MainContent,"🌸 Miu Hub Loaded Successfully")
+CreateLabel(MainContent,"💗 Transparent Pink UI")
+CreateLabel(MainContent,"✨ Fly + ESP + Kill Aura")
 
-print("Miu Hub Loaded Successfully")
+print("🌸 Miu Hub Loaded Successfully!")
+print("💖 Transparent Pink GUI | Fly + Zombie ESP + Kill Aura")
