@@ -1,6 +1,6 @@
 --[[
-    Miu Hub — Obsidian UI
-    Pink Edition | Draggable & Collapsible
+    🌸 Miu Hub — Survive Zombie Arena
+    Pink Glass Edition | Draggable & Collapsible
 ]]
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/Obsidian/main/source.lua"))()
@@ -9,15 +9,15 @@ local Window = Library:CreateWindow({
     Theme = "Default"
 })
 
---===[ Color Palette (Pink Theme) ]===--
+--===[ Color Palette (Pink Glass) ]===--
 local Pink = {
-    Main = Color3.fromRGB(255, 105, 180),        -- Hot Pink
-    Light = Color3.fromRGB(255, 182, 193),       -- Light Pink
-    Dark = Color3.fromRGB(219, 50, 120),         -- Deep Pink
-    SoftBg = Color3.fromRGB(60, 20, 40),         -- Dark magenta bg
+    Main = Color3.fromRGB(255, 182, 193),        -- Light Pink
+    Medium = Color3.fromRGB(255, 150, 180),      -- Medium Pink
+    Dark = Color3.fromRGB(255, 105, 180),         -- Hot Pink
+    SoftBg = Color3.fromRGB(40, 15, 30),         -- Dark transparent bg
     Accent = Color3.fromRGB(255, 20, 147),       -- DeepPink
     White = Color3.fromRGB(255, 255, 255),
-    Shadow = Color3.fromRGB(30, 10, 20)
+    Glass = Color3.fromRGB(255, 200, 210)        -- Pink glass
 }
 
 --===[ Services ]===--
@@ -25,7 +25,6 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
 local Player = Players.LocalPlayer
 local Mouse = Player:GetMouse()
 
@@ -35,79 +34,130 @@ local toggles = {
     esp = false,
     killAura = false
 }
+local flySpeed = 50
+local killRange = 30
 
---===[ COREGUI CONTAINER (di chuyển + thu nhỏ) ]===--
+--===[ COREGUI CONTAINER (Pink Glass - Draggable) ]===--
 local Container = Instance.new("Frame")
 Container.Name = "MiuHub_Container"
-Container.Size = UDim2.new(0, 480, 0, 600)
-Container.Position = UDim2.new(0.5, -240, 0.3, -50)
+Container.Size = UDim2.new(0, 500, 0, 620)
+Container.Position = UDim2.new(0.5, -250, 0.3, -50)
 Container.BackgroundColor3 = Pink.SoftBg
-Container.BackgroundTransparency = 0.08
+Container.BackgroundTransparency = 0.15
 Container.BorderSizePixel = 0
 Container.Active = true
-Container.Draggable = true  -- DI CHUYỂN ĐƯỢC
+Container.Draggable = true  -- 🖱 DI CHUYỂN ĐƯỢC
+Container.ClipsDescendants = true
 
--- Gradient cho container
+-- Glass effect gradient
 local UIGradient = Instance.new("UIGradient")
 UIGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Pink.Dark),
-    ColorSequenceKeypoint.new(0.5, Pink.Main),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 60, 120))
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 182, 193)),  -- Light Pink
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 105, 180)), -- Hot Pink
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 80, 140))
+})
+UIGradient.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0.4),
+    NumberSequenceKeypoint.new(0.5, 0.5),
+    NumberSequenceKeypoint.new(1, 0.6)
 })
 UIGradient.Rotation = 45
 UIGradient.Parent = Container
 
+-- Glass border glow
+local UIGlass = Instance.new("UIStroke")
+UIGlass.Color = Pink.Glass
+UIGlass.Transparency = 0.6
+UIGlass.Thickness = 1.5
+UIGlass.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+UIGlass.Parent = Container
+
 local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 16)
+UICorner.CornerRadius = UDim.new(0, 18)
 UICorner.Parent = Container
 
 -- Shadow
 local Shadow = Instance.new("ImageLabel")
 Shadow.Name = "Shadow"
-Shadow.Size = UDim2.new(1, 24, 1, 24)
-Shadow.Position = UDim2.new(0, -12, 0, -12)
+Shadow.Size = UDim2.new(1, 30, 1, 30)
+Shadow.Position = UDim2.new(0, -15, 0, -15)
 Shadow.BackgroundTransparency = 1
 Shadow.Image = "rbxassetid://6014261993"
-Shadow.ImageColor3 = Pink.Shadow
-Shadow.ImageTransparency = 0.6
+Shadow.ImageColor3 = Color3.fromRGB(30, 10, 20)
+Shadow.ImageTransparency = 0.5
 Shadow.ScaleType = Enum.ScaleType.Slice
 Shadow.SliceCenter = Rect.new(12, 12, 12, 12)
 Shadow.Parent = Container
+Shadow.ZIndex = -1
 
---===[ TITLE BAR (Draggable + Collapse Button) ]===--
+--===[ TITLE BAR (Draggable) ]===--
 local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1, -20, 0, 44)
+TitleBar.Size = UDim2.new(1, -20, 0, 48)
 TitleBar.Position = UDim2.new(0, 10, 0, 10)
 TitleBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-TitleBar.BackgroundTransparency = 0.92
+TitleBar.BackgroundTransparency = 0.88
 TitleBar.BorderSizePixel = 0
 TitleBar.Parent = Container
 
 local TitleBarCorner = Instance.new("UICorner")
-TitleBarCorner.CornerRadius = UDim.new(0, 10)
+TitleBarCorner.CornerRadius = UDim.new(0, 12)
 TitleBarCorner.Parent = TitleBar
+
+local TitleBarStroke = Instance.new("UIStroke")
+TitleBarStroke.Color = Pink.Glass
+TitleBarStroke.Transparency = 0.7
+TitleBarStroke.Thickness = 1
+TitleBarStroke.Parent = TitleBar
+
+-- Title Icon
+local TitleIcon = Instance.new("TextLabel")
+TitleIcon.Size = UDim2.new(0, 30, 0, 30)
+TitleIcon.Position = UDim2.new(0, 10, 0.5, -15)
+TitleIcon.BackgroundTransparency = 1
+TitleIcon.Text = "🌸"
+TitleIcon.Font = Enum.Font.GothamBold
+TitleIcon.TextSize = 18
+TitleIcon.Parent = TitleBar
 
 -- Title Text
 local TitleLabel = Instance.new("TextLabel")
-TitleLabel.Size = UDim2.new(1, -80, 1, 0)
-TitleLabel.Position = UDim2.new(0, 14, 0, 0)
+TitleLabel.Size = UDim2.new(1, -120, 1, 0)
+TitleLabel.Position = UDim2.new(0, 44, 0, 0)
 TitleLabel.BackgroundTransparency = 1
-TitleLabel.Text = "🌸 Miu Hub"
+TitleLabel.Text = "Miu Hub"
 TitleLabel.Font = Enum.Font.GothamBold
 TitleLabel.TextSize = 20
 TitleLabel.TextColor3 = Pink.White
 TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.TextTransparency = 0.1
 TitleLabel.Parent = TitleBar
 
---===[ COLLAPSE / MINIMIZE BUTTON (THU NHỎ) ]===--
+-- Version badge
+local VersionBadge = Instance.new("TextLabel")
+VersionBadge.Size = UDim2.new(0, 50, 0, 18)
+VersionBadge.Position = UDim2.new(0, 44, 1, -22)
+VersionBadge.BackgroundColor3 = Pink.Medium
+VersionBadge.BackgroundTransparency = 0.5
+VersionBadge.Text = "v1.0"
+VersionBadge.Font = Enum.Font.Gotham
+VersionBadge.TextSize = 10
+VersionBadge.TextColor3 = Pink.White
+VersionBadge.TextTransparency = 0.3
+VersionBadge.Parent = TitleBar
+
+local VersionCorner = Instance.new("UICorner")
+VersionCorner.CornerRadius = UDim.new(0, 6)
+VersionCorner.Parent = VersionBadge
+
+--===[ COLLAPSE BUTTON (THU NHỎ) ]===--
 local isCollapsed = false
 local CollapseButton = Instance.new("ImageButton")
-CollapseButton.Size = UDim2.new(0, 32, 0, 32)
-CollapseButton.Position = UDim2.new(1, -74, 0.5, -16)
+CollapseButton.Size = UDim2.new(0, 34, 0, 34)
+CollapseButton.Position = UDim2.new(1, -80, 0.5, -17)
 CollapseButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 CollapseButton.BackgroundTransparency = 0.85
 CollapseButton.BorderSizePixel = 0
-CollapseButton.Image = "rbxassetid://6035047409"  -- arrow icon
+CollapseButton.Image = "rbxassetid://6035047409"
 CollapseButton.ImageColor3 = Pink.White
 CollapseButton.ImageRectOffset = Vector2.new(0, 0)
 CollapseButton.ImageRectSize = Vector2.new(32, 32)
@@ -117,15 +167,21 @@ local CollapseBtnCorner = Instance.new("UICorner")
 CollapseBtnCorner.CornerRadius = UDim.new(0, 8)
 CollapseBtnCorner.Parent = CollapseButton
 
+local CollapseStroke = Instance.new("UIStroke")
+CollapseStroke.Color = Pink.Glass
+CollapseStroke.Transparency = 0.7
+CollapseStroke.Thickness = 1
+CollapseStroke.Parent = CollapseButton
+
 -- Close Button (X)
 local CloseButton = Instance.new("ImageButton")
-CloseButton.Size = UDim2.new(0, 32, 0, 32)
-CloseButton.Position = UDim2.new(1, -36, 0.5, -16)
+CloseButton.Size = UDim2.new(0, 34, 0, 34)
+CloseButton.Position = UDim2.new(1, -40, 0.5, -17)
 CloseButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 CloseButton.BackgroundTransparency = 0.85
 CloseButton.BorderSizePixel = 0
 CloseButton.Image = "rbxassetid://6035047409"
-CloseButton.ImageColor3 = Color3.fromRGB(255, 80, 80)
+CloseButton.ImageColor3 = Color3.fromRGB(255, 100, 100)
 CloseButton.ImageRectOffset = Vector2.new(32, 64)
 CloseButton.ImageRectSize = Vector2.new(32, 32)
 CloseButton.Parent = TitleBar
@@ -134,121 +190,68 @@ local CloseBtnCorner = Instance.new("UICorner")
 CloseBtnCorner.CornerRadius = UDim.new(0, 8)
 CloseBtnCorner.Parent = CloseButton
 
---===[ CONTENT FRAME (ẩn/hiện khi collapse) ]===--
-local ContentFrame = Instance.new("Frame")
+local CloseStroke = Instance.new("UIStroke")
+CloseStroke.Color = Color3.fromRGB(255, 100, 100)
+CloseStroke.Transparency = 0.6
+CloseStroke.Thickness = 1
+CloseStroke.Parent = CloseButton
+
+--===[ CONTENT FRAME ]===--
+local ContentFrame = Instance.new("ScrollingFrame")
 ContentFrame.Name = "ContentFrame"
 ContentFrame.Size = UDim2.new(1, -20, 1, -74)
-ContentFrame.Position = UDim2.new(0, 10, 0, 64)
+ContentFrame.Position = UDim2.new(0, 10, 0, 68)
 ContentFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-ContentFrame.BackgroundTransparency = 0.94
+ContentFrame.BackgroundTransparency = 0.95
 ContentFrame.BorderSizePixel = 0
+ContentFrame.ScrollBarThickness = 4
+ContentFrame.ScrollBarImageColor3 = Pink.Main
+ContentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ContentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 ContentFrame.Parent = Container
 ContentFrame.ClipsDescendants = true
 
 local ContentCorner = Instance.new("UICorner")
-ContentCorner.CornerRadius = UDim.new(0, 10)
+ContentCorner.CornerRadius = UDim.new(0, 12)
 ContentCorner.Parent = ContentFrame
 
---===[ TABS ]===--
-local TabsHolder = Instance.new("Frame")
-TabsHolder.Size = UDim2.new(1, -16, 0, 44)
-TabsHolder.Position = UDim2.new(0, 8, 0, 8)
-TabsHolder.BackgroundTransparency = 1
-TabsHolder.Parent = ContentFrame
+local ContentPadding = Instance.new("UIPadding")
+ContentPadding.PaddingTop = UDim.new(0, 12)
+ContentPadding.PaddingLeft = UDim.new(0, 8)
+ContentPadding.PaddingRight = UDim.new(0, 8)
+ContentPadding.PaddingBottom = UDim.new(0, 12)
+ContentPadding.Parent = ContentFrame
 
-local TabButtons = {}
-local TabContents = {}
-local activeTab = nil
+local ContentList = Instance.new("UIListLayout")
+ContentList.Padding = UDim.new(0, 10)
+ContentList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+ContentList.SortOrder = Enum.SortOrder.LayoutOrder
+ContentList.Parent = ContentFrame
 
-local TabData = {
-    {name = "🏠 Home", key = "home"},
-    {name = "✈ Fly", key = "fly"},
-    {name = "👁 ESP", key = "esp"},
-    {name = "⚔ Kill Aura", key = "killaura"},
-    {name = "⚙ Settings", key = "settings"}
-}
-
-local function createTab(tabKey)
-    local container = Instance.new("ScrollingFrame")
-    container.Size = UDim2.new(1, -16, 1, -68)
-    container.Position = UDim2.new(0, 8, 0, 58)
-    container.BackgroundTransparency = 1
-    container.BorderSizePixel = 0
-    container.ScrollBarThickness = 4
-    container.ScrollBarImageColor3 = Pink.Main
-    container.CanvasSize = UDim2.new(0, 0, 0, 0)
-    container.Visible = false
-    container.Parent = ContentFrame
-    container.AutomaticCanvasSize = Enum.AutomaticSize.Y
-
-    local uiList = Instance.new("UIListLayout")
-    uiList.Padding = UDim.new(0, 8)
-    uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    uiList.Parent = container
-
-    local uiPadding = Instance.new("UIPadding")
-    uiPadding.PaddingTop = UDim.new(0, 6)
-    uiPadding.PaddingBottom = UDim.new(0, 12)
-    uiPadding.Parent = container
-
-    return container
-end
-
-for i, tab in ipairs(TabData) do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 82, 0, 34)
-    btn.Position = UDim2.new(0, (i - 1) * 90 + 4, 0, 5)
-    btn.BackgroundColor3 = Pink.Main
-    btn.BackgroundTransparency = 0.7
-    btn.BorderSizePixel = 0
-    btn.Text = tab.name
-    btn.Font = Enum.Font.GothamSemibold
-    btn.TextSize = 13
-    btn.TextColor3 = Pink.White
-    btn.TextTransparency = 0.2
-    btn.Parent = TabsHolder
-
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 8)
-    btnCorner.Parent = btn
-
-    TabButtons[tab.key] = btn
-    TabContents[tab.key] = createTab(tab.key)
-
-    btn.MouseButton1Click:Connect(function()
-        for k, v in pairs(TabContents) do
-            v.Visible = (k == tab.key)
-        end
-        for k, v in pairs(TabButtons) do
-            v.BackgroundTransparency = (k == tab.key) and 0.3 or 0.7
-            v.TextTransparency = (k == tab.key) and 0 or 0.2
-        end
-        activeTab = tab.key
-    end)
-end
-
--- Kích hoạt Home tab mặc định
-TabButtons["home"].BackgroundTransparency = 0.3
-TabContents["home"].Visible = true
-activeTab = "home"
-
---===[ HELPER: Tạo Section ]===--
-local function createSection(parent, title)
+--===[ HELPER: Tạo Section (Pink Glass) ]===--
+local function createSection(title)
     local section = Instance.new("Frame")
-    section.Size = UDim2.new(1, -16, 0, 0)
-    section.BackgroundColor3 = Pink.Light
-    section.BackgroundTransparency = 0.88
+    section.Size = UDim2.new(1, -4, 0, 0)
+    section.BackgroundColor3 = Color3.fromRGB(255, 200, 210)
+    section.BackgroundTransparency = 0.85
     section.BorderSizePixel = 0
     section.AutomaticSize = Enum.AutomaticSize.Y
-    section.Parent = parent
+    section.Parent = ContentFrame
 
     local secCorner = Instance.new("UICorner")
-    secCorner.CornerRadius = UDim.new(0, 10)
+    secCorner.CornerRadius = UDim.new(0, 12)
     secCorner.Parent = section
 
+    local secStroke = Instance.new("UIStroke")
+    secStroke.Color = Pink.Glass
+    secStroke.Transparency = 0.8
+    secStroke.Thickness = 1
+    secStroke.Parent = section
+
+    -- Title
     local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, -20, 0, 32)
-    titleLabel.Position = UDim2.new(0, 10, 0, 6)
+    titleLabel.Size = UDim2.new(1, -24, 0, 34)
+    titleLabel.Position = UDim2.new(0, 12, 0, 6)
     titleLabel.BackgroundTransparency = 1
     titleLabel.Text = "  " .. title
     titleLabel.Font = Enum.Font.GothamBold
@@ -257,18 +260,24 @@ local function createSection(parent, title)
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
     titleLabel.Parent = section
 
+    -- Divider
     local divider = Instance.new("Frame")
-    divider.Size = UDim2.new(1, -24, 0, 1)
-    divider.Position = UDim2.new(0, 12, 0, 40)
+    divider.Size = UDim2.new(1, -28, 0, 1)
+    divider.Position = UDim2.new(0, 14, 0, 42)
     divider.BackgroundColor3 = Pink.Main
-    divider.BackgroundTransparency = 0.6
+    divider.BackgroundTransparency = 0.5
     divider.BorderSizePixel = 0
     divider.Parent = section
 
+    local divCorner = Instance.new("UICorner")
+    divCorner.CornerRadius = UDim.new(1, 0)
+    divCorner.Parent = divider
+
+    -- Content container
     local container = Instance.new("Frame")
     container.Name = "SectionContent"
-    container.Size = UDim2.new(1, -16, 0, 0)
-    container.Position = UDim2.new(0, 8, 0, 46)
+    container.Size = UDim2.new(1, -20, 0, 0)
+    container.Position = UDim2.new(0, 10, 0, 48)
     container.BackgroundTransparency = 1
     container.BorderSizePixel = 0
     container.AutomaticSize = Enum.AutomaticSize.Y
@@ -280,7 +289,7 @@ local function createSection(parent, title)
     list.Parent = container
 
     local pad = Instance.new("UIPadding")
-    pad.PaddingBottom = UDim.new(0, 8)
+    pad.PaddingBottom = UDim.new(0, 10)
     pad.Parent = container
 
     section.AutomaticSize = Enum.AutomaticSize.Y
@@ -288,34 +297,53 @@ local function createSection(parent, title)
     return section, container
 end
 
---===[ HELPER: Tạo Toggle Row (hồng) ]===--
-local function createToggle(parent, label, callback)
+--===[ HELPER: Tạo Toggle Row (Pink) ]===--
+local function createToggle(parent, label, desc, callback)
     local row = Instance.new("Frame")
-    row.Size = UDim2.new(1, -12, 0, 38)
+    row.Size = UDim2.new(1, -8, 0, 44)
     row.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     row.BackgroundTransparency = 0.92
     row.BorderSizePixel = 0
     row.Parent = parent
 
     local rowCorner = Instance.new("UICorner")
-    rowCorner.CornerRadius = UDim.new(0, 8)
+    rowCorner.CornerRadius = UDim.new(0, 10)
     rowCorner.Parent = row
 
+    local rowStroke = Instance.new("UIStroke")
+    rowStroke.Color = Pink.Glass
+    rowStroke.Transparency = 0.85
+    rowStroke.Thickness = 1
+    rowStroke.Parent = row
+
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -60, 1, 0)
-    lbl.Position = UDim2.new(0, 12, 0, 0)
+    lbl.Size = UDim2.new(1, -70, 0, 22)
+    lbl.Position = UDim2.new(0, 12, 0, 4)
     lbl.BackgroundTransparency = 1
     lbl.Text = label
-    lbl.Font = Enum.Font.Gotham
+    lbl.Font = Enum.Font.GothamSemibold
     lbl.TextSize = 14
     lbl.TextColor3 = Pink.White
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = row
 
+    if desc then
+        local descLbl = Instance.new("TextLabel")
+        descLbl.Size = UDim2.new(1, -70, 0, 16)
+        descLbl.Position = UDim2.new(0, 12, 0, 26)
+        descLbl.BackgroundTransparency = 1
+        descLbl.Text = desc
+        descLbl.Font = Enum.Font.Gotham
+        descLbl.TextSize = 11
+        descLbl.TextColor3 = Color3.fromRGB(200, 170, 180)
+        descLbl.TextXAlignment = Enum.TextXAlignment.Left
+        descLbl.Parent = row
+    end
+
     local toggleBtn = Instance.new("TextButton")
-    toggleBtn.Size = UDim2.new(0, 42, 0, 22)
-    toggleBtn.Position = UDim2.new(1, -54, 0.5, -11)
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(80, 40, 60)
+    toggleBtn.Size = UDim2.new(0, 46, 0, 24)
+    toggleBtn.Position = UDim2.new(1, -58, 0.5, -12)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(70, 35, 55)
     toggleBtn.BorderSizePixel = 0
     toggleBtn.Text = ""
     toggleBtn.Parent = row
@@ -325,9 +353,9 @@ local function createToggle(parent, label, callback)
     toggleCorner.Parent = toggleBtn
 
     local knob = Instance.new("Frame")
-    knob.Size = UDim2.new(0, 18, 0, 18)
-    knob.Position = UDim2.new(0, 2, 0.5, -9)
-    knob.BackgroundColor3 = Pink.White
+    knob.Size = UDim2.new(0, 20, 0, 20)
+    knob.Position = UDim2.new(0, 2, 0.5, -10)
+    knob.BackgroundColor3 = Color3.fromRGB(200, 180, 190)
     knob.BorderSizePixel = 0
     knob.Parent = toggleBtn
 
@@ -341,13 +369,13 @@ local function createToggle(parent, label, callback)
     local function updateToggle(state)
         isOn = state
         if isOn then
-            local t1 = TweenService:Create(toggleBtn, tweenInfo, {BackgroundColor3 = Pink.Main})
-            local t2 = TweenService:Create(knob, tweenInfo, {Position = UDim2.new(1, -20, 0.5, -9), BackgroundColor3 = Pink.White})
+            local t1 = TweenService:Create(toggleBtn, tweenInfo, {BackgroundColor3 = Pink.Dark})
+            local t2 = TweenService:Create(knob, tweenInfo, {Position = UDim2.new(1, -22, 0.5, -10), BackgroundColor3 = Pink.White})
             t1:Play()
             t2:Play()
         else
-            local t1 = TweenService:Create(toggleBtn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(80, 40, 60)})
-            local t2 = TweenService:Create(knob, tweenInfo, {Position = UDim2.new(0, 2, 0.5, -9), BackgroundColor3 = Color3.fromRGB(200, 200, 200)})
+            local t1 = TweenService:Create(toggleBtn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(70, 35, 55)})
+            local t2 = TweenService:Create(knob, tweenInfo, {Position = UDim2.new(0, 2, 0.5, -10), BackgroundColor3 = Color3.fromRGB(200, 180, 190)})
             t1:Play()
             t2:Play()
         end
@@ -365,12 +393,12 @@ local function createToggle(parent, label, callback)
     end
 end
 
---===[ HELPER: Tạo Button Hồng ]===--
+--===[ HELPER: Tạo Button Pink Glass ]===--
 local function createPinkButton(parent, text, callback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -12, 0, 38)
-    btn.BackgroundColor3 = Pink.Main
-    btn.BackgroundTransparency = 0.5
+    btn.Size = UDim2.new(1, -8, 0, 40)
+    btn.BackgroundColor3 = Pink.Medium
+    btn.BackgroundTransparency = 0.55
     btn.BorderSizePixel = 0
     btn.Text = text
     btn.Font = Enum.Font.GothamSemibold
@@ -379,18 +407,23 @@ local function createPinkButton(parent, text, callback)
     btn.Parent = parent
 
     local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 8)
+    btnCorner.CornerRadius = UDim.new(0, 10)
     btnCorner.Parent = btn
+
+    local btnStroke = Instance.new("UIStroke")
+    btnStroke.Color = Pink.Glass
+    btnStroke.Transparency = 0.7
+    btnStroke.Thickness = 1
+    btnStroke.Parent = btn
 
     btn.MouseButton1Click:Connect(function()
         if callback then
             pcall(callback)
         end
-        -- Hiệu ứng nhấn
-        local t1 = TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundTransparency = 0.2})
+        local t1 = TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundTransparency = 0.3})
         t1:Play()
         t1.Completed:Connect(function()
-            TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency = 0.5}):Play()
+            TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundTransparency = 0.55}):Play()
         end)
     end)
 
@@ -398,64 +431,161 @@ local function createPinkButton(parent, text, callback)
 end
 
 --===[ HELPER: Tạo Label ]===--
-local function createInfoLabel(parent, text, fontSize)
+local function createInfoLabel(parent, text, fontSize, color)
     local lbl = Instance.new("TextLabel")
     lbl.Size = UDim2.new(1, -12, 0, 22)
     lbl.BackgroundTransparency = 1
     lbl.Text = "  " .. text
     lbl.Font = Enum.Font.Gotham
     lbl.TextSize = fontSize or 13
-    lbl.TextColor3 = Color3.fromRGB(230, 200, 210)
+    lbl.TextColor3 = color or Color3.fromRGB(230, 200, 210)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.Parent = parent
     return lbl
 end
 
+--===[ HELPER: Tạo Slider ]===--
+local function createSlider(parent, label, min, max, default, callback)
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -8, 0, 48)
+    frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    frame.BackgroundTransparency = 0.92
+    frame.BorderSizePixel = 0
+    frame.Parent = parent
+
+    local fCorner = Instance.new("UICorner")
+    fCorner.CornerRadius = UDim.new(0, 10)
+    fCorner.Parent = frame
+
+    local fStroke = Instance.new("UIStroke")
+    fStroke.Color = Pink.Glass
+    fStroke.Transparency = 0.85
+    fStroke.Thickness = 1
+    fStroke.Parent = frame
+
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -20, 0, 20)
+    lbl.Position = UDim2.new(0, 10, 0, 4)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = label .. ": " .. default
+    lbl.Font = Enum.Font.Gotham
+    lbl.TextSize = 13
+    lbl.TextColor3 = Pink.White
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.Parent = frame
+
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(1, -20, 0, 4)
+    bar.Position = UDim2.new(0, 10, 0, 34)
+    bar.BackgroundColor3 = Color3.fromRGB(70, 35, 55)
+    bar.BorderSizePixel = 0
+    bar.Parent = frame
+
+    local barCorner = Instance.new("UICorner")
+    barCorner.CornerRadius = UDim.new(1, 0)
+    barCorner.Parent = bar
+
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+    fill.BackgroundColor3 = Pink.Main
+    fill.BorderSizePixel = 0
+    fill.Parent = bar
+
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim.new(1, 0)
+    fillCorner.Parent = fill
+
+    local value = default
+    local dragging = false
+
+    bar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            local pos = math.clamp((Mouse.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+            value = math.floor(min + (max - min) * pos)
+            fill.Size = UDim2.new(pos, 0, 1, 0)
+            lbl.Text = label .. ": " .. value
+            if callback then pcall(callback, value) end
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local pos = math.clamp((Mouse.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+            value = math.floor(min + (max - min) * pos)
+            fill.Size = UDim2.new(pos, 0, 1, 0)
+            lbl.Text = label .. ": " .. value
+            if callback then pcall(callback, value) end
+        end
+    end)
+
+    return frame, function() return value end
+end
+
 --===================================================================
--- TAB 1: HOME
+-- SECTION 1: 🏠 HOME
 --===================================================================
 do
-    local home = TabContents["home"]
-    local sec, secCont = createSection(home, "🌸 About Miu Hub")
-    createInfoLabel(secCont, "🌸 Pink Edition — Made with love", 14)
-    createInfoLabel(secCont, "✨ Obsidian UI | Draggable & Collapsible", 13)
+    local sec, secCont = createSection("🌸 About Miu Hub")
+    createInfoLabel(secCont, "✨ Survive Zombie Arena — Premium Script", 14)
+    createInfoLabel(secCont, "💖 Pink Glass Edition — Light & Elegant", 13)
+    createInfoLabel(secCont, "🖱 Drag to move | 🔽 Collapse to minimize", 12)
 
-    local sec2, sec2Cont = createSection(home, "📊 Quick Stats")
-    local statusLabels = {}
-    statusLabels.player = createInfoLabel(sec2Cont, "🧑 Player: " .. Player.Name, 13)
-    statusLabels.fps = createInfoLabel(sec2Cont, "⏱ FPS: 60", 13)
-    statusLabels.fly = createInfoLabel(sec2Cont, "✈ Fly: OFF", 13)
-    statusLabels.esp = createInfoLabel(sec2Cont, "👁 ESP: OFF", 13)
-    statusLabels.ka = createInfoLabel(sec2Cont, "⚔ Kill Aura: OFF", 13)
+    local sec2, sec2Cont = createSection("📊 Live Stats")
+    local stats = {}
+    stats.player = createInfoLabel(sec2Cont, "🧑 Player: " .. Player.Name, 14)
+    stats.fps = createInfoLabel(sec2Cont, "⏱ FPS: 60", 13)
+    stats.fly = createInfoLabel(sec2Cont, "✈ Fly: OFF", 13)
+    stats.esp = createInfoLabel(sec2Cont, "👁 ESP: OFF", 13)
+    stats.ka = createInfoLabel(sec2Cont, "⚔ Kill Aura: OFF", 13)
+    stats.range = createInfoLabel(sec2Cont, "📏 Range: 30", 13)
+    stats.speed = createInfoLabel(sec2Cont, "🎯 Speed: 50", 13)
 
     RunService.RenderStepped:Connect(function()
         if not Container or not Container.Parent then return end
         local fps = math.floor(1 / RunService.RenderStepped:Wait())
         pcall(function()
-            statusLabels.fps.Text = "⏱ FPS: " .. fps
-            statusLabels.fly.Text = "✈ Fly: " .. (toggles.fly and "ON" or "OFF")
-            statusLabels.esp.Text = "👁 ESP: " .. (toggles.esp and "ON" or "OFF")
-            statusLabels.ka.Text = "⚔ Kill Aura: " .. (toggles.killAura and "ON" or "OFF")
+            stats.fps.Text = "⏱ FPS: " .. fps
+            stats.fly.Text = "✈ Fly: " .. (toggles.fly and "✅ ON" or "❌ OFF")
+            stats.esp.Text = "👁 ESP: " .. (toggles.esp and "✅ ON" or "❌ OFF")
+            stats.ka.Text = "⚔ Kill Aura: " .. (toggles.killAura and "✅ ON" or "❌ OFF")
+            stats.range.Text = "📏 Range: " .. killRange
+            stats.speed.Text = "🎯 Speed: " .. flySpeed
         end)
     end)
 
-    local sec3, sec3Cont = createSection(home, "⚡ Quick Controls")
+    local sec3, sec3Cont = createSection("⚡ Quick Actions")
     createPinkButton(sec3Cont, "▶ Start All Features", function()
-        -- Set all toggles via setter functions
+        toggles.fly = true
+        toggles.esp = true
+        toggles.killAura = true
+        startFly()
+        startESP()
+        startKillAura()
     end)
     createPinkButton(sec3Cont, "■ Stop All Features", function()
-        -- Stop logic
+        toggles.fly = false
+        toggles.esp = false
+        toggles.killAura = false
+        stopFly()
+        stopESP()
+        stopKillAura()
     end)
 end
 
 --===================================================================
--- TAB 2: FLY
+-- SECTION 2: ✈ FLY
 --===================================================================
 do
-    local flyTab = TabContents["fly"]
-    local sec, secCont = createSection(flyTab, "✈ Flight Controls")
+    local sec, secCont = createSection("✈ Fly Control")
 
-    local flyToggle, setFly = createToggle(secCont, "Enable Fly", function(state)
+    createToggle(secCont, "Enable Fly", "W/A/S/D + Space/Shift to move", function(state)
         toggles.fly = state
         if state then
             startFly()
@@ -464,88 +594,21 @@ do
         end
     end)
 
+    createSlider(secCont, "🎯 Speed", 10, 150, 50, function(val)
+        flySpeed = val
+    end)
+
     createInfoLabel(secCont, "⬆ Space = Ascend | ⬇ Shift = Descend", 12)
     createInfoLabel(secCont, "🖱 W/A/S/D = Forward/Left/Back/Right", 12)
-
-    local sec2, sec2Cont = createSection(flyTab, "⚙ Speed Settings")
-
-    local speedSlider = Instance.new("Frame")
-    speedSlider.Size = UDim2.new(1, -12, 0, 44)
-    speedSlider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    speedSlider.BackgroundTransparency = 0.92
-    speedSlider.BorderSizePixel = 0
-    speedSlider.Parent = sec2Cont
-
-    local sliderCorner = Instance.new("UICorner")
-    sliderCorner.CornerRadius = UDim.new(0, 8)
-    sliderCorner.Parent = speedSlider
-
-    local sliderLabel = Instance.new("TextLabel")
-    sliderLabel.Size = UDim2.new(1, -20, 0, 20)
-    sliderLabel.Position = UDim2.new(0, 10, 0, 4)
-    sliderLabel.BackgroundTransparency = 1
-    sliderLabel.Text = "🎯 Speed: 50"
-    sliderLabel.Font = Enum.Font.Gotham
-    sliderLabel.TextSize = 13
-    sliderLabel.TextColor3 = Pink.White
-    sliderLabel.TextXAlignment = Enum.TextXAlignment.Left
-    sliderLabel.Parent = speedSlider
-
-    local sliderBar = Instance.new("Frame")
-    sliderBar.Size = UDim2.new(1, -20, 0, 4)
-    sliderBar.Position = UDim2.new(0, 10, 0, 32)
-    sliderBar.BackgroundColor3 = Color3.fromRGB(80, 40, 60)
-    sliderBar.BorderSizePixel = 0
-    sliderBar.Parent = speedSlider
-
-    local sliderBarCorner = Instance.new("UICorner")
-    sliderBarCorner.CornerRadius = UDim.new(1, 0)
-    sliderBarCorner.Parent = sliderBar
-
-    local sliderFill = Instance.new("Frame")
-    sliderFill.Size = UDim2.new(0.5, 0, 1, 0)
-    sliderFill.BackgroundColor3 = Pink.Main
-    sliderFill.BorderSizePixel = 0
-    sliderFill.Parent = sliderBar
-
-    local sliderFillCorner = Instance.new("UICorner")
-    sliderFillCorner.CornerRadius = UDim.new(1, 0)
-    sliderFillCorner.Parent = sliderFill
-
-    local flySpeed = 50
-
-    -- Simple slider drag
-    local draggingSlider = false
-    sliderBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            draggingSlider = true
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            draggingSlider = false
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if draggingSlider and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local pos = Mouse.X - sliderBar.AbsolutePosition.X
-            local maxW = sliderBar.AbsoluteSize.X
-            local pct = math.clamp(pos / maxW, 0, 1)
-            sliderFill.Size = UDim2.new(pct, 0, 1, 0)
-            flySpeed = math.floor(pct * 100)
-            sliderLabel.Text = "🎯 Speed: " .. flySpeed
-        end
-    end)
 end
 
 --===================================================================
--- TAB 3: ESP
+-- SECTION 3: 👁 ESP
 --===================================================================
 do
-    local espTab = TabContents["esp"]
-    local sec, secCont = createSection(espTab, "👁 Zombie ESP")
+    local sec, secCont = createSection("👁 Zombie ESP")
 
-    local espToggle, setEsp = createToggle(secCont, "Enable Zombie ESP", function(state)
+    createToggle(secCont, "Enable ESP", "Show zombie info + highlight", function(state)
         toggles.esp = state
         if state then
             startESP()
@@ -554,12 +617,11 @@ do
         end
     end)
 
-    local sec2, sec2Cont = createSection(espTab, "🎨 Display Options")
-    createInfoLabel(sec2Cont, "☠ Shows zombie name & health", 13)
-    createInfoLabel(sec2Cont, "❤️ Health bars in pink theme", 13)
-    createInfoLabel(sec2Cont, "📍 Distance indicator", 13)
+    createInfoLabel(secCont, "☠ Shows zombie name & health", 13)
+    createInfoLabel(secCont, "❤️ Health bars in pink theme", 13)
+    createInfoLabel(secCont, "📍 Distance indicator", 13)
 
-    createPinkButton(sec2Cont, "🔄 Refresh ESP", function()
+    createPinkButton(secCont, "🔄 Refresh ESP", function()
         if toggles.esp then
             stopESP()
             task.wait(0.1)
@@ -569,13 +631,13 @@ do
 end
 
 --===================================================================
--- TAB 4: KILL AURA
+-- SECTION 4: ⚔ KILL AURA
 --===================================================================
 do
-    local kaTab = TabContents["killaura"]
-    local sec, secCont = createSection(kaTab, "⚔ Kill Aura Settings")
+    local sec, secCont = createSection("⚔ Kill Aura")
 
-    local kaToggle, setKa = createToggle(secCont, "Enable Kill Aura", function(state)
+    createToggle(secCont, "Enable Kill Aura", "Auto-attack zombies in range", function(state)
+        toggles.killAura = state
         toggles.killAura = state
         if state then
             startKillAura()
@@ -584,98 +646,43 @@ do
         end
     end)
 
-    local sec2, sec2Cont = createSection(kaTab, "📡 Range Settings")
-
-    local rangeSlider = Instance.new("Frame")
-    rangeSlider.Size = UDim2.new(1, -12, 0, 44)
-    rangeSlider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    rangeSlider.BackgroundTransparency = 0.92
-    rangeSlider.BorderSizePixel = 0
-    rangeSlider.Parent = sec2Cont
-
-    local rSliderCorner = Instance.new("UICorner")
-    rSliderCorner.CornerRadius = UDim.new(0, 8)
-    rSliderCorner.Parent = rangeSlider
-
-    local rSliderLabel = Instance.new("TextLabel")
-    rSliderLabel.Size = UDim2.new(1, -20, 0, 20)
-    rSliderLabel.Position = UDim2.new(0, 10, 0, 4)
-    rSliderLabel.BackgroundTransparency = 1
-    rSliderLabel.Text = "📏 Range: 30"
-    rSliderLabel.Font = Enum.Font.Gotham
-    rSliderLabel.TextSize = 13
-    rSliderLabel.TextColor3 = Pink.White
-    rSliderLabel.TextXAlignment = Enum.TextXAlignment.Left
-    rSliderLabel.Parent = rangeSlider
-
-    local rSliderBar = Instance.new("Frame")
-    rSliderBar.Size = UDim2.new(1, -20, 0, 4)
-    rSliderBar.Position = UDim2.new(0, 10, 0, 32)
-    rSliderBar.BackgroundColor3 = Color3.fromRGB(80, 40, 60)
-    rSliderBar.BorderSizePixel = 0
-    rSliderBar.Parent = rangeSlider
-
-    local rSliderBarCorner = Instance.new("UICorner")
-    rSliderBarCorner.CornerRadius = UDim.new(1, 0)
-    rSliderBarCorner.Parent = rSliderBar
-
-    local rSliderFill = Instance.new("Frame")
-    rSliderFill.Size = UDim2.new(0.3, 0, 1, 0)
-    rSliderFill.BackgroundColor3 = Pink.Main
-    rSliderFill.BorderSizePixel = 0
-    rSliderFill.Parent = rSliderBar
-
-    local rSliderFillCorner = Instance.new("UICorner")
-    rSliderFillCorner.CornerRadius = UDim.new(1, 0)
-    rSliderFillCorner.Parent = rSliderFill
-
-    local killRange = 30
-    local rDragging = false
-    rSliderBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            rDragging = true
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            rDragging = false
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if rDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local pos = Mouse.X - rSliderBar.AbsolutePosition.X
-            local maxW = rSliderBar.AbsoluteSize.X
-            local pct = math.clamp(pos / maxW, 0, 1)
-            rSliderFill.Size = UDim2.new(pct, 0, 1, 0)
-            killRange = math.floor(pct * 80 + 5)
-            rSliderLabel.Text = "📏 Range: " .. killRange
-        end
+    createSlider(secCont, "📏 Range", 5, 100, 30, function(val)
+        killRange = val
     end)
 
-    local sec3, sec3Cont = createSection(kaTab, "⚡ Combat Status")
-    local combatStatus = createInfoLabel(sec3Cont, "⏳ Status: Idle", 13)
+    createInfoLabel(secCont, "⚔ Auto-targets zombies within range", 13)
+    createInfoLabel(secCont, "🔫 Uses GunClient + GunRemotes + DamageEvent", 12)
 end
 
 --===================================================================
--- TAB 5: SETTINGS
+-- SECTION 5: ⚙ SETTINGS
 --===================================================================
 do
-    local settingsTab = TabContents["settings"]
-    local sec, secCont = createSection(settingsTab, "⚙ Menu Controls")
+    local sec, secCont = createSection("⚙ Menu Settings")
 
     createPinkButton(secCont, "🔁 Toggle UI Visibility", function()
         Container.Visible = not Container.Visible
     end)
 
     createPinkButton(secCont, "❌ Close Miu Hub", function()
-        Library:Remove()
-        Container:Destroy()
+        local tween = TweenService:Create(Container, TweenInfo.new(0.3), {
+            BackgroundTransparency = 1,
+            Size = UDim2.new(0, 500, 0, 0)
+        })
+        tween:Play()
+        tween.Completed:Connect(function()
+            stopFly()
+            stopESP()
+            stopKillAura()
+            Container:Destroy()
+            Library:Remove()
+        end)
     end)
 
-    local sec2, sec2Cont = createSection(settingsTab, "🎨 Theme Info")
-    createInfoLabel(sec2Cont, "🌸 Miu Hub Pink Edition", 14)
-    createInfoLabel(sec2Cont, "💖 Color: Hot Pink (#FF69B4)", 13)
-    createInfoLabel(sec2Cont, "📱 Draggable & Collapsible", 13)
+    local sec2, sec2Cont = createSection("🌸 About")
+    createInfoLabel(sec2Cont, "🌸 Miu Hub v1.0 — Pink Glass", 14, Pink.Main)
+    createInfoLabel(sec2Cont, "💖 Survive Zombie Arena", 13)
+    createInfoLabel(sec2Cont, "✨ Draggable • Collapsible • Transparent", 12)
 end
 
 --===================================================================
@@ -780,14 +787,20 @@ function startESP()
 
                     local bg = Instance.new("Frame")
                     bg.Size = UDim2.new(1, 0, 1, 0)
-                    bg.BackgroundColor3 = Pink.Dark
-                    bg.BackgroundTransparency = 0.25
+                    bg.BackgroundColor3 = Color3.fromRGB(255, 150, 180)
+                    bg.BackgroundTransparency = 0.35
                     bg.BorderSizePixel = 0
                     bg.Parent = billboard
 
                     local bgCorner = Instance.new("UICorner")
                     bgCorner.CornerRadius = UDim.new(0, 8)
                     bgCorner.Parent = bg
+
+                    local bgStroke = Instance.new("UIStroke")
+                    bgStroke.Color = Color3.fromRGB(255, 200, 210)
+                    bgStroke.Transparency = 0.5
+                    bgStroke.Thickness = 1
+                    bgStroke.Parent = bg
 
                     local nameLbl = Instance.new("TextLabel")
                     nameLbl.Size = UDim2.new(1, -8, 0, 20)
@@ -796,7 +809,7 @@ function startESP()
                     nameLbl.Text = "☠ " .. zombie.Name
                     nameLbl.Font = Enum.Font.GothamBold
                     nameLbl.TextSize = 13
-                    nameLbl.TextColor3 = Pink.White
+                    nameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
                     nameLbl.Parent = billboard
 
                     local healthLbl = Instance.new("TextLabel")
@@ -806,7 +819,7 @@ function startESP()
                     healthLbl.Text = "❤️ Health: ?"
                     healthLbl.Font = Enum.Font.Gotham
                     healthLbl.TextSize = 12
-                    healthLbl.TextColor3 = Pink.Light
+                    healthLbl.TextColor3 = Color3.fromRGB(255, 200, 210)
                     healthLbl.Parent = billboard
 
                     local distLbl = Instance.new("TextLabel")
@@ -816,7 +829,7 @@ function startESP()
                     distLbl.Text = "📍 ?m"
                     distLbl.Font = Enum.Font.Gotham
                     distLbl.TextSize = 11
-                    distLbl.TextColor3 = Color3.fromRGB(200, 150, 170)
+                    distLbl.TextColor3 = Color3.fromRGB(200, 160, 180)
                     distLbl.Parent = billboard
 
                     billboard.Parent = hrp
@@ -824,9 +837,9 @@ function startESP()
                     -- Highlight
                     local highlight = Instance.new("Highlight")
                     highlight.Name = "MiuHub_Highlight"
-                    highlight.FillColor = Pink.Main
+                    highlight.FillColor = Color3.fromRGB(255, 182, 193)
                     highlight.FillTransparency = 0.5
-                    highlight.OutlineColor = Pink.Dark
+                    highlight.OutlineColor = Color3.fromRGB(255, 105, 180)
                     highlight.OutlineTransparency = 0.3
                     highlight.Parent = zombie
 
@@ -886,9 +899,9 @@ function stopESP()
 end
 
 --===================================================================
--- KILL AURA FUNCTION
+-- KILL AURA FUNCTION (Your provided code)
 --===================================================================
-local killAuraConnection = nil
+killAuraConnection = nil
 
 function startKillAura()
     local zombieFolder = workspace:FindFirstChild("Zombies_Local") or workspace:FindFirstChild("Zombies")
@@ -979,59 +992,129 @@ CollapseButton.MouseButton1Click:Connect(function()
     local arrowRotation
     
     if isCollapsed then
-        targetSize = UDim2.new(0, 480, 0, 64)
+        targetSize = UDim2.new(0, 500, 0, 68)
         targetContentSize = UDim2.new(1, -20, 0, 0)
         arrowRotation = 180
+        ContentFrame.Visible = false
     else
-        targetSize = UDim2.new(0, 480, 0, 600)
+        targetSize = UDim2.new(0, 500, 0, 620)
         targetContentSize = UDim2.new(1, -20, 1, -74)
         arrowRotation = 0
+        ContentFrame.Visible = true
     end
     
     local tween1 = TweenService:Create(Container, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = targetSize})
-    local tween2 = TweenService:Create(ContentFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = targetContentSize})
     local tween3 = TweenService:Create(CollapseButton, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Rotation = arrowRotation})
     
     tween1:Play()
-    tween2:Play()
     tween3:Play()
 end)
 
 --===[ CLOSE BUTTON ]===--
 CloseButton.MouseButton1Click:Connect(function()
-    -- Animation tắt dần
     local tween = TweenService:Create(Container, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
         BackgroundTransparency = 1,
-        Size = UDim2.new(0, 480, 0, 0)
+        Size = UDim2.new(0, 500, 0, 0)
     })
     tween:Play()
     tween.Completed:Connect(function()
+        stopFly()
+        stopESP()
+        stopKillAura()
         Container:Destroy()
         Library:Remove()
     end)
 end)
 
---===[ DESTROY HANDLING ]===--
-local oldDestroy = Container.Destroy
-Container.Destroy = function(self)
+--===[ RESPAWN HANDLING ]===--
+Player.CharacterAdded:Connect(function(char)
+    -- Tự động khởi động lại các chức năng nếu đang bật
+    task.wait(0.5)
+    if toggles.fly then
+        stopFly()
+        startFly()
+    end
+    if toggles.esp then
+        stopESP()
+        startESP()
+    end
+end)
+
+--===[ CLEANUP FUNCTION ]===--
+_G.MiuCleanup = function()
     stopFly()
     stopESP()
     stopKillAura()
-    if oldDestroy then
-        oldDestroy(self)
+    if Container and Container.Parent then
+        Container:Destroy()
     end
+    pcall(function() Library:Remove() end)
 end
+
+--===[ KEYBIND: Right Ctrl để toggle UI ]===--
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.RightControl then
+        Container.Visible = not Container.Visible
+    end
+end)
 
 --===[ INIT LOG ]===--
-print("[Miu Hub] 🌸 Pink Edition loaded! | Draggable + Collapsible")
+print("🌸 [Miu Hub] Loaded successfully!")
+print("💖 Pink Glass Edition | Draggable + Collapsible")
+print("🖱 Drag the title bar to move")
+print("🔽 Click the arrow to collapse")
+print("❌ Click X to close")
+print("⌨ Right Ctrl to toggle visibility")
 
 --===[ PARENT CONTAINER TO PLAYER GUI ]===--
-Container.Parent = Player:WaitForChild("PlayerGui")
+local playerGui = Player:WaitForChild("PlayerGui")
+Container.Parent = playerGui
 
--- Đảm bảo container nằm trên cùng
-Container.ZIndex = 10
+--===[ ĐẢM BẢO GUI HIỂN THỊ ĐÚNG ]===--
+Container.ZIndex = 5
 for _, child in ipairs(Container:GetDescendants()) do
     if child:IsA("GuiObject") then
-        child.ZIndex = child.ZIndex + 10
+        child.ZIndex = child.ZIndex + 5
     end
 end
+
+--===[ THÔNG BÁO SẴN SÀNG ]===--
+local notification = Instance.new("Frame")
+notification.Size = UDim2.new(0, 260, 0, 50)
+notification.Position = UDim2.new(0.5, -130, 0.05, 0)
+notification.BackgroundColor3 = Color3.fromRGB(255, 150, 180)
+notification.BackgroundTransparency = 0.25
+notification.BorderSizePixel = 0
+notification.Parent = playerGui
+notification.ZIndex = 100
+
+local notifCorner = Instance.new("UICorner")
+notifCorner.CornerRadius = UDim.new(0, 12)
+notifCorner.Parent = notification
+
+local notifStroke = Instance.new("UIStroke")
+notifStroke.Color = Color3.fromRGB(255, 200, 210)
+notifStroke.Transparency = 0.5
+notifStroke.Thickness = 1
+notifStroke.Parent = notification
+
+local notifText = Instance.new("TextLabel")
+notifText.Size = UDim2.new(1, 0, 1, 0)
+notifText.BackgroundTransparency = 1
+notifText.Text = "🌸 Miu Hub Loaded!"
+notifText.Font = Enum.Font.GothamBold
+notifText.TextSize = 16
+notifText.TextColor3 = Color3.fromRGB(255, 255, 255)
+notifText.Parent = notification
+
+-- Animation cho notification
+task.wait(0.5)
+local notifTween = TweenService:Create(notification, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+    Position = UDim2.new(0.5, -130, 0.05, -60),
+    BackgroundTransparency = 1
+})
+notifTween:Play()
+notifTween.Completed:Connect(function()
+    notification:Destroy()
+end)
