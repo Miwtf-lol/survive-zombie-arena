@@ -34,7 +34,55 @@ local SettingsTab = Window:AddTab("UI Settings", "settings")
 
 -- ==================== MAIN TAB - FLY ====================
 local FlyBox = MainTab:AddLeftGroupbox("Fly Controls")
+--// RIGHT PANEL ANIMATION
+local RightBox = MainTab:AddRightGroupbox("Preview")
 
+local AnimLabel = RightBox:AddLabel("")
+AnimLabel:SetText("")
+
+-- tạo image thật
+local Image = Instance.new("ImageLabel")
+Image.Size = UDim2.new(0, 180, 0, 180)
+Image.BackgroundTransparency = 1
+Image.Position = UDim2.new(0.5, -90, 0, 10)
+Image.Parent = AnimLabel.Instance
+
+-- frame animation (ảnh của bạn)
+local frames = {
+    "rbxassetid://88101837441073",
+    "rbxassetid://135697214300940",
+    "rbxassetid://137935817163901"
+}
+
+-- chạy animation
+task.spawn(function()
+    while Image.Parent do
+        for i = 1,3 do
+            Image.Image = frames[i]
+            task.wait(0.07)
+        end
+    end
+end)
+
+-- hiệu ứng trôi (floating)
+task.spawn(function()
+    while Image.Parent do
+        Image:TweenPosition(UDim2.new(0.5, -90, 0, 0), "Out", "Sine", 1.5, true)
+        task.wait(1.5)
+        Image:TweenPosition(UDim2.new(0.5, -90, 0, 20), "Out", "Sine", 1.5, true)
+        task.wait(1.5)
+    end
+end)
+
+-- hiệu ứng pulse (đập nhẹ)
+task.spawn(function()
+    while Image.Parent do
+        Image:TweenSize(UDim2.new(0, 190, 0, 190), "Out", "Sine", 0.8, true)
+        task.wait(0.8)
+        Image:TweenSize(UDim2.new(0, 180, 0, 180), "Out", "Sine", 0.8, true)
+        task.wait(0.8)
+    end
+end)
 local Flying = false
 local FlySpeed = 50
 local FlyConnection = nil
