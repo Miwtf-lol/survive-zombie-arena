@@ -31,7 +31,7 @@ Window.BackgroundTransparency = 0.15
 Window.BorderSizePixel = 0
 Window.Active = true
 Window.Selectable = true
-Window.ClipsDescendants = true
+Window.ClipsDescendants = false
 Window.Parent = MiuHub
 
 -- Rounded corners
@@ -54,7 +54,9 @@ GlassOverlay.BackgroundColor3 = Color3.fromRGB(255, 182, 193)
 GlassOverlay.BackgroundTransparency = 0.88
 GlassOverlay.BorderSizePixel = 0
 GlassOverlay.Parent = Window
-
+GlassOverlay.ZIndex = 0
+GlassOverlay.Active = false
+GlassOverlay.InputBegan:Connect(function() end)
 local GlassCorner = Instance.new("UICorner")
 GlassCorner.CornerRadius = UDim.new(0, 16)
 GlassCorner.Parent = GlassOverlay
@@ -499,6 +501,8 @@ local dragging = false
 local dragStart
 local startPos
 
+TitleBar.Active = true
+
 TitleBar.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1
 	or input.UserInputType == Enum.UserInputType.Touch then
@@ -506,12 +510,13 @@ TitleBar.InputBegan:Connect(function(input)
 		dragging = true
 		dragStart = input.Position
 		startPos = Window.Position
+	end
+end)
 
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
 	end
 end)
 
