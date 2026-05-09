@@ -1,0 +1,793 @@
+-- MIU HUB - Survive Zombie Arena [PENTEST VERSION]
+-- Tính năng: Kill Aura + Fly + GUI màu hồng + Thông báo khởi động
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local gunRemotes = ReplicatedStorage.GunRemotes
+
+-- ==========================================
+-- THÔNG BÁO KHỞI ĐỘNG
+-- ==========================================
+
+local notificationGui = Instance.new("ScreenGui")
+notificationGui.Name = "MIUNotification"
+notificationGui.ResetOnSpawn = false
+notificationGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Background notification
+local notifBg = Instance.new("Frame")
+notifBg.Size = UDim2.new(0, 400, 0, 80)
+notifBg.Position = UDim2.new(0.5, -200, 0.5, -40)
+notifBg.BackgroundColor3 = Color3.fromRGB(255, 50, 150) -- Hồng đậm
+notifBg.BackgroundTransparency = 0.2
+notifBg.BorderSizePixel = 0
+notifBg.AnchorPoint = Vector2.new(0.5, 0.5)
+notifBg.Parent = notificationGui
+
+local notifCorner = Instance.new("UICorner")
+notifCorner.CornerRadius = UDim.new(0, 15)
+notifCorner.Parent = notifBg
+
+-- Shadow
+local notifShadow = Instance.new("Frame")
+notifShadow.Size = UDim2.new(1, 10, 1, 10)
+notifShadow.Position = UDim2.new(0, -5, 0, -5)
+notifShadow.BackgroundColor3 = Color3.fromRGB(255, 20, 120)
+notifShadow.BackgroundTransparency = 0.6
+notifShadow.BorderSizePixel = 0
+notifShadow.ZIndex = 0
+local shadowCorner = Instance.new("UICorner")
+shadowCorner.CornerRadius = UDim.new(0, 18)
+shadowCorner.Parent = notifShadow
+notifShadow.Parent = notifBg
+
+-- Text chính
+local notifTitle = Instance.new("TextLabel")
+notifTitle.Size = UDim2.new(1, 0, 0.6, 0)
+notifTitle.Position = UDim2.new(0, 0, 0.05, 0)
+notifTitle.BackgroundTransparency = 1
+notifTitle.Text = "🌸 MIU HUB"
+notifTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+notifTitle.Font = Enum.Font.GothamBold
+notifTitle.TextSize = 30
+notifTitle.TextScaled = true
+notifTitle.Parent = notifBg
+
+-- Sub text
+local notifSub = Instance.new("TextLabel")
+notifSub.Size = UDim2.new(1, 0, 0.35, 0)
+notifSub.Position = UDim2.new(0, 0, 0.6, 0)
+notifSub.BackgroundTransparency = 1
+notifSub.Text = "Survive Zombie Arena | Loading..."
+notifSub.TextColor3 = Color3.fromRGB(255, 200, 230)
+notifSub.Font = Enum.Font.Gotham
+notifSub.TextSize = 14
+notifSub.TextScaled = true
+notifSub.Parent = notifBg
+
+-- Hiệu ứng xuất hiện
+notifBg.Size = UDim2.new(0, 0, 0, 0)
+local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local expandTween = TweenService:Create(notifBg, tweenInfo, {Size = UDim2.new(0, 400, 0, 80)})
+expandTween:Play()
+
+-- Delay rồi ẩn thông báo và hiện GUI chính
+task.wait(2.5)
+
+-- Fade out notification
+local fadeInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+local fadeTween = TweenService:Create(notifBg, fadeInfo, {BackgroundTransparency = 1})
+fadeTween:Play()
+task.wait(0.3)
+
+notifTitle.TextTransparency = 1
+notifSub.TextTransparency = 1
+task.wait(0.3)
+
+notificationGui:Destroy()
+
+-- ==========================================
+-- CẤU HÌNH
+-- ==========================================
+
+local CONFIG = {
+    -- Kill Aura
+    KillRadius = 200,
+    MaxRadius = 500,
+    MinRadius = 10,
+    FireRate = 0.05,
+    UseAmmo = true,
+    InfiniteAmmo = true,
+    MultiHitPerEnemy = 3,
+    HeadshotMultiplier = true,
+    VisualEffect = true,
+    SilentMode = false,
+    IgnoreWalls = true,
+    
+    -- Fly
+    FlySpeed = 50,
+    MaxFlySpeed = 200,
+    MinFlySpeed = 5,
+}
+
+-- BIẾN
+local auraEnabled = false
+local flyEnabled = false
+local currentRadius = CONFIG.KillRadius
+local totalKills = 0
+local killLoop = nil
+local flyConnection = nil
+local bodyGyro = nil
+local bodyVelocity = nil
+
+-- ==========================================
+-- HÀM KILL AURA
+-- ==========================================
+
+local function getEnemiesInRange(radius)
+    local enemies = {}
+    local character = player.Character
+    if not character then return enemies end
+    
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return enemies end
+    
+    local position = humanoidRootPart.Position
+    
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") then
+            local humanoid = obj:FindFirstChild("Humanoid")
+            if not Players:GetPlayerFromCharacter(obj) and humanoid and humanoid.Health > 0 then
+                local root = obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChild("Torso") or obj:FindFirstChild("UpperTorso")
+                if root then
+                    local dist = (root.Position - position).Magnitude
+                    if dist <= radius then
+                        table.insert(enemies, {
+                            model = obj,
+                            root = root,
+                            humanoid = humanoid,
+                            distance = dist
+                        })
+                    end
+                end
+            end
+        end
+    end
+    
+    table.sort(enemies, function(a, b)
+        return a.distance < b.distance
+    end)
+    
+    return enemies
+end
+
+local function fireGunHit(target, hitPosition, hitNormal)
+    local success, result = pcall(function()
+        local args = { [1] = target, [2] = hitPosition, [3] = hitNormal }
+        gunRemotes.GunHit:FireServer(unpack(args))
+    end)
+    return success
+end
+
+local function fireMultiHits(enemyData, hitCount)
+    local model = enemyData.model
+    local root = enemyData.root
+    
+    for i = 1, hitCount do
+        local hitPos
+        if CONFIG.HeadshotMultiplier and model:FindFirstChild("Head") then
+            local head = model:FindFirstChild("Head")
+            hitPos = head.Position + Vector3.new(
+                math.random(-100, 100) / 100,
+                math.random(-50, 50) / 100,
+                math.random(-100, 100) / 100
+            )
+        else
+            hitPos = root.Position + Vector3.new(
+                math.random(-200, 200) / 100,
+                math.random(-200, 200) / 100,
+                math.random(-200, 200) / 100
+            )
+        end
+        
+        local hitNormal = Vector3.new(
+            math.random(-100, 100) / 100,
+            math.random(-50, 50) / 100,
+            math.random(-100, 100) / 100
+        ).Unit
+        
+        fireGunHit(model, hitPos, hitNormal)
+        task.wait(0.01)
+    end
+end
+
+local function fireGunEffect()
+    if CONFIG.SilentMode then return end
+    local character = player.Character
+    if not character then return end
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+    
+    pcall(function()
+        local args = { [1] = humanoidRootPart.Position, [2] = humanoidRootPart.CFrame.LookVector }
+        gunRemotes.GunFire:FireServer(unpack(args))
+    end)
+end
+
+local function handleAmmo(tool)
+    if not tool then return false end
+    
+    local ammoVars = {"Ammo", "CurrentAmmo", "AmmoCount", "Bullets", "Magazine", "Clip"}
+    local ammo = nil
+    
+    for _, varName in ipairs(ammoVars) do
+        ammo = tool:FindFirstChild(varName)
+        if ammo then break end
+    end
+    
+    if not ammo then
+        local backpack = player:FindFirstChild("Backpack")
+        if backpack then
+            for _, item in ipairs(backpack:GetChildren()) do
+                for _, varName in ipairs(ammoVars) do
+                    ammo = item:FindFirstChild(varName)
+                    if ammo then return true end
+                end
+            end
+        end
+        return false
+    end
+    
+    if CONFIG.UseAmmo then
+        if ammo.Value <= 0 then
+            if CONFIG.InfiniteAmmo then
+                local maxAmmo = tool:FindFirstChild("MaxAmmo") or tool:FindFirstChild("MaxBullets")
+                if maxAmmo then
+                    ammo.Value = maxAmmo.Value
+                else
+                    ammo.Value = 30
+                end
+                return true
+            end
+            return false
+        end
+        if not CONFIG.InfiniteAmmo then
+            ammo.Value = ammo.Value - 1
+        end
+    end
+    return true
+end
+
+local function startKillAura()
+    if auraEnabled then return end
+    auraEnabled = true
+    
+    print("[MIU HUB] Kill Aura Started - Radius: " .. currentRadius)
+    
+    killLoop = RunService.Heartbeat:Connect(function()
+        if not auraEnabled then return end
+        
+        local character = player.Character
+        if not character then return end
+        
+        local tool = character:FindFirstChildOfClass("Tool")
+        if not tool then return end
+        
+        if not handleAmmo(tool) then return end
+        
+        local enemies = getEnemiesInRange(currentRadius)
+        
+        if #enemies > 0 then
+            if CONFIG.VisualEffect and not CONFIG.SilentMode then
+                fireGunEffect()
+            end
+            
+            for _, enemyData in ipairs(enemies) do
+                fireMultiHits(enemyData, CONFIG.MultiHitPerEnemy)
+                totalKills = totalKills + 1
+            end
+            
+            task.wait(CONFIG.FireRate)
+        end
+    end)
+end
+
+local function stopKillAura()
+    auraEnabled = false
+    if killLoop then
+        killLoop:Disconnect()
+        killLoop = nil
+    end
+    print("[MIU HUB] Kill Aura Stopped")
+end
+
+-- ==========================================
+-- HÀM FLY
+-- ==========================================
+
+local function startFly()
+    if flyEnabled then return end
+    
+    local character = player.Character
+    if not character then 
+        print("[MIU HUB] No character to fly!")
+        return 
+    end
+    
+    local humanoid = character:FindFirstChild("Humanoid")
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    
+    if not humanoid or not humanoidRootPart then
+        print("[MIU HUB] No Humanoid or HumanoidRootPart!")
+        return
+    end
+    
+    flyEnabled = true
+    humanoid.PlatformStand = true
+    
+    -- Tạo body mover
+    bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.P = 9e4
+    bodyGyro.D = 9e3
+    bodyGyro.MaxTorque = Vector3.new(9e5, 9e5, 9e5)
+    bodyGyro.CFrame = humanoidRootPart.CFrame
+    bodyGyro.Parent = humanoidRootPart
+    
+    bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.MaxForce = Vector3.new(9e5, 9e5, 9e5)
+    bodyVelocity.Parent = humanoidRootPart
+    
+    print("[MIU HUB] Fly Enabled - Speed: " .. CONFIG.FlySpeed)
+    
+    -- Vòng lặp điều khiển fly
+    flyConnection = RunService.RenderStepped:Connect(function()
+        if not flyEnabled or not character or not humanoidRootPart then
+            stopFly()
+            return
+        end
+        
+        local moveDirection = Vector3.new(0, 0, 0)
+        local camera = workspace.CurrentCamera
+        
+        -- WASD di chuyển
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+            moveDirection = moveDirection + camera.CFrame.LookVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+            moveDirection = moveDirection - camera.CFrame.LookVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+            moveDirection = moveDirection - camera.CFrame.RightVector
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+            moveDirection = moveDirection + camera.CFrame.RightVector
+        end
+        
+        -- Space = lên, Shift = xuống
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+            moveDirection = moveDirection + Vector3.new(0, 1, 0)
+        end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+            moveDirection = moveDirection + Vector3.new(0, -1, 0)
+        end
+        
+        if moveDirection.Magnitude > 0 then
+            moveDirection = moveDirection.Unit * CONFIG.FlySpeed
+        end
+        
+        bodyVelocity.Velocity = moveDirection
+        bodyGyro.CFrame = camera.CFrame
+    end)
+end
+
+local function stopFly()
+    flyEnabled = false
+    
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
+    end
+    
+    if bodyGyro then
+        bodyGyro:Destroy()
+        bodyGyro = nil
+    end
+    
+    if bodyVelocity then
+        bodyVelocity:Destroy()
+        bodyVelocity = nil
+    end
+    
+    local character = player.Character
+    if character then
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+    end
+    
+    print("[MIU HUB] Fly Disabled")
+end
+
+-- ==========================================
+-- GUI CHÍNH - MÀU HỒNG
+-- ==========================================
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MIUHubGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- MAIN FRAME - Di chuyển được
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 280, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -175)
+MainFrame.BackgroundColor3 = Color3.fromRGB(255, 100, 180) -- Hồng chính
+MainFrame.BackgroundTransparency = 0.1
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 15)
+MainCorner.Parent = MainFrame
+
+-- Shadow
+local Shadow = Instance.new("Frame")
+Shadow.Size = UDim2.new(1, 10, 1, 10)
+Shadow.Position = UDim2.new(0, -5, 0, -5)
+Shadow.BackgroundColor3 = Color3.fromRGB(200, 50, 130)
+Shadow.BackgroundTransparency = 0.5
+Shadow.BorderSizePixel = 0
+Shadow.ZIndex = 0
+local ShadowCorner = Instance.new("UICorner")
+ShadowCorner.CornerRadius = UDim.new(0, 18)
+ShadowCorner.Parent = Shadow
+Shadow.Parent = MainFrame
+
+-- Title Bar (để kéo)
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.BackgroundColor3 = Color3.fromRGB(220, 50, 150)
+TitleBar.BackgroundTransparency = 0.3
+TitleBar.BorderSizePixel = 0
+local TitleBarCorner = Instance.new("UICorner")
+TitleBarCorner.CornerRadius = UDim.new(0, 15)
+TitleBarCorner.Parent = TitleBar
+TitleBar.Parent = MainFrame
+
+-- Fix corner chỉ bo góc trên
+local TopLeftCorner = Instance.new("UICorner")
+TopLeftCorner.CornerRadius = UDim.new(0, 15)
+TopLeftCorner.Parent = TitleBar
+
+-- Title Text
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 1, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "🌸 MIU HUB"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 20
+Title.TextScaled = true
+Title.Parent = TitleBar
+
+-- Close Button
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 16
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 8)
+CloseCorner.Parent = CloseBtn
+CloseBtn.Parent = TitleBar
+
+-- Minimize Button
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -70, 0, 5)
+MinBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+MinBtn.Text = "−"
+MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.TextSize = 16
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 8)
+MinCorner.Parent = MinBtn
+MinBtn.Parent = TitleBar
+
+-- === SECTION HEADER ===
+local function createSection(parent, text, yPos)
+    local section = Instance.new("Frame")
+    section.Size = UDim2.new(0.9, 0, 0, 25)
+    section.Position = UDim2.new(0.05, 0, yPos, 0)
+    section.BackgroundColor3 = Color3.fromRGB(255, 150, 200)
+    section.BackgroundTransparency = 0.4
+    section.BorderSizePixel = 0
+    local secCorner = Instance.new("UICorner")
+    secCorner.CornerRadius = UDim.new(0, 6)
+    secCorner.Parent = section
+    section.Parent = parent
+    
+    local secLabel = Instance.new("TextLabel")
+    secLabel.Size = UDim2.new(1, 0, 1, 0)
+    secLabel.BackgroundTransparency = 1
+    secLabel.Text = text
+    secLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    secLabel.Font = Enum.Font.GothamBold
+    secLabel.TextSize = 12
+    secLabel.Parent = section
+    
+    return section
+end
+
+-- === KILL AURA SECTION ===
+createSection(MainFrame, "🎯 KILL AURA", 0.14)
+
+-- Aura Status
+local AuraStatus = Instance.new("TextLabel")
+AuraStatus.Size = UDim2.new(0.9, 0, 0, 20)
+AuraStatus.Position = UDim2.new(0.05, 0, 0.20, 0)
+AuraStatus.BackgroundTransparency = 1
+AuraStatus.Text = "Status: OFF | Range: " .. currentRadius
+AuraStatus.TextColor3 = Color3.fromRGB(255, 200, 220)
+AuraStatus.Font = Enum.Font.Gotham
+AuraStatus.TextSize = 11
+AuraStatus.Parent = MainFrame
+
+-- Toggle Aura Button
+local AuraBtn = Instance.new("TextButton")
+AuraBtn.Size = UDim2.new(0.42, 0, 0, 30)
+AuraBtn.Position = UDim2.new(0.05, 0, 0.26, 0)
+AuraBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 170) -- Hồng
+AuraBtn.Text = "▶ Aura ON"
+AuraBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AuraBtn.Font = Enum.Font.GothamBold
+AuraBtn.TextSize = 12
+local AuraBtnCorner = Instance.new("UICorner")
+AuraBtnCorner.CornerRadius = UDim.new(0, 8)
+AuraBtnCorner.Parent = AuraBtn
+AuraBtn.Parent = MainFrame
+
+-- Radius Input
+local RadiusInput = Instance.new("TextBox")
+RadiusInput.Size = UDim2.new(0.42, 0, 0, 30)
+RadiusInput.Position = UDim2.new(0.53, 0, 0.26, 0)
+RadiusInput.BackgroundColor3 = Color3.fromRGB(220, 60, 150)
+RadiusInput.Text = tostring(currentRadius)
+RadiusInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+RadiusInput.Font = Enum.Font.GothamBold
+RadiusInput.TextSize = 13
+RadiusInput.PlaceholderText = "Radius"
+local RadiusCorner = Instance.new("UICorner")
+RadiusCorner.CornerRadius = UDim.new(0, 8)
+RadiusCorner.Parent = RadiusInput
+RadiusInput.Parent = MainFrame
+
+-- === FLY SECTION ===
+createSection(MainFrame, "🕊️ FLY", 0.37)
+
+-- Fly Status
+local FlyStatus = Instance.new("TextLabel")
+FlyStatus.Size = UDim2.new(0.9, 0, 0, 20)
+FlyStatus.Position = UDim2.new(0.05, 0, 0.43, 0)
+FlyStatus.BackgroundTransparency = 1
+FlyStatus.Text = "Status: OFF | Speed: " .. CONFIG.FlySpeed
+FlyStatus.TextColor3 = Color3.fromRGB(255, 200, 220)
+FlyStatus.Font = Enum.Font.Gotham
+FlyStatus.TextSize = 11
+FlyStatus.Parent = MainFrame
+
+-- Toggle Fly Button
+local FlyBtn = Instance.new("TextButton")
+FlyBtn.Size = UDim2.new(0.42, 0, 0, 30)
+FlyBtn.Position = UDim2.new(0.05, 0, 0.49, 0)
+FlyBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 170) -- Hồng
+FlyBtn.Text = "▶ Fly ON"
+FlyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FlyBtn.Font = Enum.Font.GothamBold
+FlyBtn.TextSize = 12
+local FlyBtnCorner = Instance.new("UICorner")
+FlyBtnCorner.CornerRadius = UDim.new(0, 8)
+FlyBtnCorner.Parent = FlyBtn
+FlyBtn.Parent = MainFrame
+
+-- Fly Speed Input
+local SpeedInput = Instance.new("TextBox")
+SpeedInput.Size = UDim2.new(0.42, 0, 0, 30)
+SpeedInput.Position = UDim2.new(0.53, 0, 0.49, 0)
+SpeedInput.BackgroundColor3 = Color3.fromRGB(220, 60, 150)
+SpeedInput.Text = tostring(CONFIG.FlySpeed)
+SpeedInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedInput.Font = Enum.Font.GothamBold
+SpeedInput.TextSize = 13
+SpeedInput.PlaceholderText = "Speed"
+local SpeedCorner = Instance.new("UICorner")
+SpeedCorner.CornerRadius = UDim.new(0, 8)
+SpeedCorner.Parent = SpeedInput
+SpeedInput.Parent = MainFrame
+
+-- === INFINITE AMMO ===
+createSection(MainFrame, "🔫 INFINITE AMMO", 0.60)
+
+local AmmoBtn = Instance.new("TextButton")
+AmmoBtn.Size = UDim2.new(0.9, 0, 0, 30)
+AmmoBtn.Position = UDim2.new(0.05, 0, 0.66, 0)
+AmmoBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100) -- Xanh lá
+AmmoBtn.Text = "∞ Ammo: ON"
+AmmoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+AmmoBtn.Font = Enum.Font.GothamBold
+AmmoBtn.TextSize = 12
+local AmmoCorner = Instance.new("UICorner")
+AmmoCorner.CornerRadius = UDim.new(0, 8)
+AmmoCorner.Parent = AmmoBtn
+AmmoBtn.Parent = MainFrame
+
+-- === STATS ===
+local StatsLabel = Instance.new("TextLabel")
+StatsLabel.Size = UDim2.new(0.9, 0, 0, 18)
+StatsLabel.Position = UDim2.new(0.05, 0, 0.77, 0)
+StatsLabel.BackgroundTransparency = 1
+StatsLabel.Text = "Kills: 0 | Fly: OFF"
+StatsLabel.TextColor3 = Color3.fromRGB(255, 180, 210)
+StatsLabel.Font = Enum.Font.Gotham
+StatsLabel.TextSize = 10
+StatsLabel.Parent = MainFrame
+
+-- === CONTROLS INFO ===
+local ControlsLabel = Instance.new("TextLabel")
+ControlsLabel.Size = UDim2.new(0.9, 0, 0, 35)
+ControlsLabel.Position = UDim2.new(0.05, 0, 0.83, 0)
+ControlsLabel.BackgroundTransparency = 1
+ControlsLabel.Text = "WASD: Move | Space: Up | Shift: Down"
+ControlsLabel.TextColor3 = Color3.fromRGB(255, 150, 200)
+ControlsLabel.Font = Enum.Font.Gotham
+ControlsLabel.TextSize = 10
+ControlsLabel.TextWrapped = true
+ControlsLabel.Parent = MainFrame
+
+-- ==========================================
+-- BUTTON EVENTS
+-- ==========================================
+
+-- Close
+CloseBtn.MouseButton1Click:Connect(function()
+    stopKillAura()
+    stopFly()
+    ScreenGui:Destroy()
+end)
+
+-- Minimize
+local minimized = false
+local originalSize = MainFrame.Size
+MinBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        MainFrame.Size = UDim2.new(0, 280, 0, 40)
+        MinBtn.Text = "+"
+    else
+        MainFrame.Size = originalSize
+        MinBtn.Text = "−"
+    end
+end)
+
+-- Aura Toggle
+AuraBtn.MouseButton1Click:Connect(function()
+    if not auraEnabled then
+        startKillAura()
+        AuraBtn.Text = "⏹ Aura OFF"
+        AuraBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        AuraStatus.Text = "Status: ON | Range: " .. currentRadius
+        AuraStatus.TextColor3 = Color3.fromRGB(150, 255, 150)
+    else
+        stopKillAura()
+        AuraBtn.Text = "▶ Aura ON"
+        AuraBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 170)
+        AuraStatus.Text = "Status: OFF | Range: " .. currentRadius
+        AuraStatus.TextColor3 = Color3.fromRGB(255, 200, 220)
+    end
+end)
+
+-- Radius Input
+RadiusInput.FocusLost:Connect(function()
+    local newRadius = tonumber(RadiusInput.Text)
+    if newRadius then
+        currentRadius = math.clamp(newRadius, CONFIG.MinRadius, CONFIG.MaxRadius)
+        RadiusInput.Text = tostring(currentRadius)
+        AuraStatus.Text = (auraEnabled and "Status: ON" or "Status: OFF") .. " | Range: " .. currentRadius
+    else
+        RadiusInput.Text = tostring(currentRadius)
+    end
+end)
+
+-- Fly Toggle
+FlyBtn.MouseButton1Click:Connect(function()
+    if not flyEnabled then
+        startFly()
+        FlyBtn.Text = "⏹ Fly OFF"
+        FlyBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        FlyStatus.Text = "Status: ON | Speed: " .. CONFIG.FlySpeed
+        FlyStatus.TextColor3 = Color3.fromRGB(150, 255, 150)
+        StatsLabel.Text = "Kills: " .. totalKills .. " | Fly: ON"
+    else
+        stopFly()
+        FlyBtn.Text = "▶ Fly ON"
+        FlyBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 170)
+        FlyStatus.Text = "Status: OFF | Speed: " .. CONFIG.FlySpeed
+        FlyStatus.TextColor3 = Color3.fromRGB(255, 200, 220)
+        StatsLabel.Text = "Kills: " .. totalKills .. " | Fly: OFF"
+    end
+end)
+
+-- Speed Input
+SpeedInput.FocusLost:Connect(function()
+    local newSpeed = tonumber(SpeedInput.Text)
+    if newSpeed then
+        CONFIG.FlySpeed = math.clamp(newSpeed, CONFIG.MinFlySpeed, CONFIG.MaxFlySpeed)
+        SpeedInput.Text = tostring(CONFIG.FlySpeed)
+        FlyStatus.Text = (flyEnabled and "Status: ON" or "Status: OFF") .. " | Speed: " .. CONFIG.FlySpeed
+        print("[MIU HUB] Fly speed updated to: " .. CONFIG.FlySpeed)
+    else
+        SpeedInput.Text = tostring(CONFIG.FlySpeed)
+    end
+end)
+
+-- Infinite Ammo Toggle
+AmmoBtn.MouseButton1Click:Connect(function()
+    CONFIG.InfiniteAmmo = not CONFIG.InfiniteAmmo
+    if CONFIG.InfiniteAmmo then
+        AmmoBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
+        AmmoBtn.Text = "∞ Ammo: ON"
+    else
+        AmmoBtn.BackgroundColor3 = Color3.fromRGB(150, 80, 80)
+        AmmoBtn.Text = "∞ Ammo: OFF"
+    end
+    print("[MIU HUB] Infinite Ammo: " .. tostring(CONFIG.InfiniteAmmo))
+end)
+
+-- Auto restart khi respawn
+player.CharacterAdded:Connect(function()
+    if auraEnabled then
+        stopKillAura()
+        task.wait(0.5)
+        startKillAura()
+    end
+    if flyEnabled then
+        stopFly()
+        task.wait(0.5)
+        startFly()
+    end
+end)
+
+-- Update stats
+spawn(function()
+    while task.wait(1) do
+        if ScreenGui and ScreenGui.Parent then
+            StatsLabel.Text = "Kills: " .. totalKills .. " | Fly: " .. (flyEnabled and "ON" or "OFF")
+        end
+    end
+end)
+
+-- ==========================================
+-- KHỞI TẠO HOÀN TẤT
+-- ==========================================
+
+print("========================================")
+print("  🌸 MIU HUB - Survive Zombie Arena")
+print("  Loaded successfully!")
+print("========================================")
+print("  [Kill Aura] Radius: " .. currentRadius .. " | Rate: " .. CONFIG.FireRate .. "s")
+print("  [Fly] Speed: " .. CONFIG.FlySpeed)
+print("  [Ammo] Infinite: " .. tostring(CONFIG.InfiniteAmmo))
+print("========================================")
