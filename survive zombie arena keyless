@@ -1,5 +1,5 @@
--- Obsidian UI - Fly + Zombie ESP + Kill Aura
--- Complete rewrite with proper Obsidian UI Library structure
+-- Miu Hub - Fly + Zombie ESP + Kill Aura
+-- Obsidian UI - Pink Theme by Miu
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -19,12 +19,29 @@ local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 
 -- ==================== CREATE WINDOW ====================
 local Window = Library:CreateWindow({
-    Title = "Dex++ Hub",
-    Footer = "Fly + ESP + Kill Aura",
-    Icon = 95816097006870,
+    Title = "🌸 Miu Hub",
+    Footer = "survive zombie arena MIU HUB",
+    Icon = 135283977825181,
     NotifySide = "Right",
     ShowCustomCursor = true,
+    Resizable = true,
+    MobileButtonsSide = "Right",
 })
+
+-- Apply pink semi-transparent theme colors
+Library:SetColor(Color3.fromRGB(255, 182, 193)) -- Light pink
+task.spawn(function()
+    task.wait(0.5)
+    if Library and Library.Options then
+        -- Set main background opacity/transparency effect
+        if Library.Window and Library.Window:FindFirstChild("Main") then
+            local main = Library.Window:FindFirstChild("Main")
+            main.BackgroundTransparency = 0.15
+            local header = main:FindFirstChild("Header")
+            if header then header.BackgroundTransparency = 0.1 end
+        end
+    end
+end)
 
 -- ==================== CREATE TABS ====================
 local MainTab = Window:AddTab("Main", "plane")
@@ -33,7 +50,7 @@ local KillAuraTab = Window:AddTab("Kill Aura", "swords")
 local SettingsTab = Window:AddTab("UI Settings", "settings")
 
 -- ==================== MAIN TAB - FLY ====================
-local FlyBox = MainTab:AddLeftGroupbox("Fly Controls")
+local FlyBox = MainTab:AddLeftGroupbox("🌸 Fly Controls")
 
 local Flying = false
 local FlySpeed = 50
@@ -148,7 +165,7 @@ function StartFly()
         end
     end)
     
-    Library:Notify("Fly Enabled!", 3)
+    Library:Notify("🌸 Fly Enabled!", 3)
 end
 
 function StopFly()
@@ -173,11 +190,11 @@ function StopFly()
         end
     end
     
-    Library:Notify("Fly Disabled", 2)
+    Library:Notify("🌸 Fly Disabled", 2)
 end
 
 -- ==================== ESP TAB ====================
-local ESPBox = ESPTab:AddLeftGroupbox("Zombie ESP")
+local ESPBox = ESPTab:AddLeftGroupbox("🌸 Zombie ESP")
 
 local ZombieESP = {
     Enabled = false,
@@ -186,7 +203,7 @@ local ZombieESP = {
     ShowDistance = true,
     MaxDistance = 1000,
     TextSize = 14,
-    Color = Color3.fromRGB(255, 0, 0),
+    Color = Color3.fromRGB(255, 150, 200),
     Zombies = {},
     Folder = nil,
 }
@@ -326,7 +343,7 @@ local function UpdateESP()
             continue
         end
         
-        local head = esp.Head
+        local head = zombieModel:FindFirstChild("Head") or zombieModel:FindFirstChildWhichIsA("BasePart")
         if not head or not head.Parent then
             RemoveZombieESP(zombieModel)
             continue
@@ -340,10 +357,11 @@ local function UpdateESP()
         end
         
         if esp.Billboard then
+            esp.Billboard.Adornee = head
             esp.Billboard.Enabled = true
             esp.NameLabel.Visible = ZombieESP.ShowName
-            esp.NameLabel.Text = zombieModel.Name
-            esp.HealthLabel.Visible = ZombieESP.ShowHealth and esp.Humanoid ~= nil
+            local hum = zombieModel:FindFirstChildOfClass("Humanoid")
+            esp.HealthLabel.Visible = ZombieESP.ShowHealth and hum ~= nil
             if ZombieESP.ShowDistance then
                 esp.DistLabel.Text = tostring(math.floor(distance)) .. "m"
                 esp.DistLabel.Visible = true
@@ -421,7 +439,7 @@ ESPBox:AddSlider("ESPTextSize", {
 })
 
 ESPBox:AddLabel("ESP Color"):AddColorPicker("ESPColor", {
-    Default = Color3.fromRGB(255, 0, 0),
+    Default = Color3.fromRGB(255, 150, 200),
     Title = "Color",
     Transparency = 0,
     Callback = function(Value)
@@ -430,7 +448,7 @@ ESPBox:AddLabel("ESP Color"):AddColorPicker("ESPColor", {
 })
 
 -- ==================== KILL AURA TAB ====================
-local KABox = KillAuraTab:AddLeftGroupbox("Kill Aura")
+local KABox = KillAuraTab:AddLeftGroupbox("🌸 Kill Aura")
 
 local KAConfig = {
     Enabled = false,
@@ -499,9 +517,9 @@ local function KAFindGameClients()
         }
     end
     
-    print("[KA] ZombieClient:", KAState.ZombieClient ~= nil)
-    print("[KA] GunClient:", KAState.GunClient ~= nil)
-    print("[KA] GunRemotes:", KAState.GunRemotes ~= nil)
+    print("[MIU] ZombieClient:", KAState.ZombieClient ~= nil)
+    print("[MIU] GunClient:", KAState.GunClient ~= nil)
+    print("[MIU] GunRemotes:", KAState.GunRemotes ~= nil)
 end
 
 local function KAScanZombiesFast()
@@ -617,9 +635,9 @@ local function KAHighlightTarget(zombie)
     KAClearHighlight()
     
     local highlight = Instance.new("Highlight")
-    highlight.FillColor = Color3.fromRGB(220, 40, 40)
-    highlight.OutlineColor = Color3.fromRGB(255, 60, 60)
-    highlight.FillTransparency = 0.5
+    highlight.FillColor = Color3.fromRGB(255, 105, 180)
+    highlight.OutlineColor = Color3.fromRGB(255, 20, 147)
+    highlight.FillTransparency = 0.4
     highlight.OutlineTransparency = 0
     highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     highlight.Adornee = zombie.Model
@@ -816,7 +834,7 @@ KABox:AddLabel("Keybind: [K] to Toggle")
 
 -- Status Labels
 KABox:AddLabel("═══════════════")
-KABox:AddLabel("STATUS")
+KABox:AddLabel("🌸 STATUS")
 
 local KAStatusLabel = KABox:AddLabel("ZombieClient: ? | GunClient: ?")
 local KATargetLabel = KABox:AddLabel("Target: None")
@@ -849,7 +867,9 @@ UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if input.KeyCode == KAConfig.Keybind then
         KAConfig.Enabled = not KAConfig.Enabled
-        Library.Options.KAEnable:SetValue(KAConfig.Enabled)
+        if Library and Library.Options and Library.Options.KAEnable then
+            Library.Options.KAEnable:SetValue(KAConfig.Enabled)
+        end
         if not KAConfig.Enabled then
             KAClearHighlight()
             KAState.CurrentTarget = nil
@@ -858,7 +878,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 -- ==================== SETTINGS TAB ====================
-local MenuBox = SettingsTab:AddLeftGroupbox("Menu")
+local MenuBox = SettingsTab:AddLeftGroupbox("🌸 Menu")
 
 MenuBox:AddButton({
     Text = "Unload",
@@ -930,12 +950,12 @@ end)
 local function Init()
     KAFindGameClients()
     KAState.Connection = RunService.RenderStepped:Connect(KALoop)
-    print("[Dex++] Loaded successfully!")
+    print("[🌸 Miu Hub] Loaded successfully!")
 end
 
-if _G.DexCleanup then pcall(_G.DexCleanup) end
+if _G.MiuCleanup then pcall(_G.MiuCleanup) end
 
-_G.DexCleanup = function()
+_G.MiuCleanup = function()
     if KAState.Connection then KAState.Connection:Disconnect() end
     KAClearHighlight()
     KAConfig.Enabled = false
@@ -946,5 +966,4 @@ end
 
 Init()
 
-Library:Notify("Dex++ Hub Loaded!", 3)
-
+Library:Notify("🌸 Miu Hub Loaded!", 3)
