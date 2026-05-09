@@ -29,7 +29,7 @@ Window.Position = UDim2.new(0.5, -170, 0.5, -215)
 Window.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
 Window.BackgroundTransparency = 0.15
 Window.BorderSizePixel = 0
-Window.Active = true
+Window.Active = false
 Window.Selectable = true
 Window.ClipsDescendants = false
 Window.Parent = MiuHub
@@ -166,6 +166,7 @@ local function CreateTabButton(name, label, icon)
     btn.TextSize = 12
     btn.BorderSizePixel = 0
     btn.Parent = TabBar
+    btn.ZIndex = 5
     local btnCorner = Instance.new("UICorner")
     btnCorner.CornerRadius = UDim.new(0, 8)
     btnCorner.Parent = btn
@@ -185,6 +186,7 @@ local function CreateTabButton(name, label, icon)
     content.Visible = false
     content.AutomaticCanvasSize = Enum.AutomaticSize.Y
     content.Parent = Window
+    content.ZIndex = 3
     local contentCorner = Instance.new("UICorner")
     contentCorner.CornerRadius = UDim.new(0, 10)
     contentCorner.Parent = content
