@@ -20,8 +20,8 @@ local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 -- ==================== CREATE WINDOW ====================
 local Window = Library:CreateWindow({
     Title = "Miu Hub",
-    Footer = "Fly + ESP + Kill Aura",
-    Icon = 95816097006870,
+    Footer = "survive zombie arena Miu Hub",
+    Icon = 135283977825181,
     NotifySide = "Right",
     ShowCustomCursor = true,
 })
