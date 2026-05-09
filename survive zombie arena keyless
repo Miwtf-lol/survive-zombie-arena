@@ -1,64 +1,68 @@
 --// MIU HUB - Survive Zombie Arena
---// Kill Aura + Fly GUI
+--// Kill Aura + Fly (Fixed)
 
 pcall(function()
     game:GetService("CoreGui"):FindFirstChild("MIU_HUB"):Destroy()
 end)
 
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RS = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-
-local GunFire = ReplicatedStorage.GunRemotes.GunFire
-local GunHit = ReplicatedStorage.GunRemotes.GunHit
+local LP = Players.LocalPlayer
+local Character = LP.Character or LP.CharacterAdded:Wait()
 
 local Aura = false
 local Fly = false
-local Range = 120
-local FlySpeed = 60
+local Range = 150
+local FlySpeed = 70
 
 local BV
 local BG
 
---// CHARACTER UPDATE
-LocalPlayer.CharacterAdded:Connect(function(char)
+--// REMOTES
+local GunFire = RS:WaitForChild("GunRemotes"):WaitForChild("GunFire")
+local GunHit = RS:WaitForChild("GunRemotes"):WaitForChild("GunHit")
+
+--// UPDATE CHARACTER
+LP.CharacterAdded:Connect(function(char)
     Character = char
 end)
 
 --// GUI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MIU_HUB"
-ScreenGui.Parent = game.CoreGui
-ScreenGui.ResetOnSpawn = false
+local SG = Instance.new("ScreenGui")
+SG.Name = "MIU_HUB"
+SG.Parent = game.CoreGui
+SG.ResetOnSpawn = false
 
 --// NOTIFY
 local Notify = Instance.new("Frame")
-Notify.Parent = ScreenGui
+Notify.Parent = SG
 Notify.Size = UDim2.new(0,0,0,50)
-Notify.Position = UDim2.new(0.5,-100,0,-60)
+Notify.Position = UDim2.new(0.5,-110,0,-60)
 Notify.BackgroundColor3 = Color3.fromRGB(255,105,180)
 Notify.BorderSizePixel = 0
 
 Instance.new("UICorner", Notify).CornerRadius = UDim.new(0,12)
 
-local NotifyText = Instance.new("TextLabel")
-NotifyText.Parent = Notify
-NotifyText.Size = UDim2.new(1,0,1,0)
-NotifyText.BackgroundTransparency = 1
-NotifyText.Text = "MIU HUB FREE"
-NotifyText.TextColor3 = Color3.new(1,1,1)
-NotifyText.Font = Enum.Font.GothamBold
-NotifyText.TextScaled = true
+local NText = Instance.new("TextLabel")
+NText.Parent = Notify
+NText.BackgroundTransparency = 1
+NText.Size = UDim2.new(1,0,1,0)
+NText.Text = "MIU HUB FREE"
+NText.TextColor3 = Color3.new(1,1,1)
+NText.Font = Enum.Font.GothamBold
+NText.TextScaled = true
 
 TweenService:Create(
     Notify,
     TweenInfo.new(0.5),
-    {Size = UDim2.new(0,220,0,50), Position = UDim2.new(0.5,-110,0,20)}
+    {
+        Size = UDim2.new(0,220,0,50),
+        Position = UDim2.new(0.5,-110,0,20)
+    }
 ):Play()
 
 task.wait(2)
@@ -66,7 +70,9 @@ task.wait(2)
 TweenService:Create(
     Notify,
     TweenInfo.new(0.5),
-    {Position = UDim2.new(0.5,-110,0,-60)}
+    {
+        Position = UDim2.new(0.5,-110,0,-70)
+    }
 ):Play()
 
 task.wait(0.5)
@@ -74,8 +80,8 @@ Notify:Destroy()
 
 --// MAIN
 local Main = Instance.new("Frame")
-Main.Parent = ScreenGui
-Main.Size = UDim2.new(0,220,0,170)
+Main.Parent = SG
+Main.Size = UDim2.new(0,220,0,180)
 Main.Position = UDim2.new(0.1,0,0.3,0)
 Main.BackgroundColor3 = Color3.fromRGB(255,105,180)
 Main.BorderSizePixel = 0
@@ -93,28 +99,39 @@ Title.TextColor3 = Color3.new(1,1,1)
 Title.Font = Enum.Font.GothamBold
 Title.TextScaled = true
 
---// BUTTON CREATE
-local function CreateButton(text, ypos)
-    local Btn = Instance.new("TextButton")
-    Btn.Parent = Main
-    Btn.Size = UDim2.new(0.82,0,0,40)
-    Btn.Position = UDim2.new(0.09,0,0,ypos)
-    Btn.BackgroundColor3 = Color3.fromRGB(255,20,147)
-    Btn.Text = text
-    Btn.TextColor3 = Color3.new(1,1,1)
-    Btn.Font = Enum.Font.GothamBold
-    Btn.TextScaled = true
-    Btn.BorderSizePixel = 0
+--// CREATE BUTTON
+local function MakeButton(name,ypos)
+    local B = Instance.new("TextButton")
+    B.Parent = Main
+    B.Size = UDim2.new(0.82,0,0,40)
+    B.Position = UDim2.new(0.09,0,0,ypos)
+    B.BackgroundColor3 = Color3.fromRGB(255,20,147)
+    B.Text = name
+    B.TextColor3 = Color3.new(1,1,1)
+    B.Font = Enum.Font.GothamBold
+    B.TextScaled = true
+    B.BorderSizePixel = 0
 
-    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0,12)
+    Instance.new("UICorner", B).CornerRadius = UDim.new(0,12)
 
-    return Btn
+    return B
 end
 
-local AuraBtn = CreateButton("KILL AURA : OFF",40)
-local FlyBtn = CreateButton("FLY : OFF",90)
+local AuraBtn = MakeButton("KILL AURA : OFF",40)
+local FlyBtn = MakeButton("FLY : OFF",95)
 
---// TOGGLE
+--// GUN
+local function GetGun()
+    if not Character then return end
+
+    for _,v in pairs(Character:GetChildren()) do
+        if v:IsA("Tool") then
+            return v
+        end
+    end
+end
+
+--// AURA BUTTON
 AuraBtn.MouseButton1Click:Connect(function()
     Aura = not Aura
 
@@ -125,75 +142,77 @@ AuraBtn.MouseButton1Click:Connect(function()
     end
 end)
 
---// FLY
-local function StartFly()
+--// FLY FUNCTIONS
+local FlyLoop
+
+local function EnableFly()
     local HRP = Character:WaitForChild("HumanoidRootPart")
 
     BV = Instance.new("BodyVelocity")
-    BV.MaxForce = Vector3.new(999999,999999,999999)
+    BV.MaxForce = Vector3.new(math.huge,math.huge,math.huge)
     BV.Velocity = Vector3.zero
     BV.Parent = HRP
 
     BG = Instance.new("BodyGyro")
-    BG.MaxTorque = Vector3.new(999999,999999,999999)
-    BG.P = 1000
+    BG.MaxTorque = Vector3.new(math.huge,math.huge,math.huge)
+    BG.CFrame = HRP.CFrame
     BG.Parent = HRP
 
-    RunService.RenderStepped:Connect(function()
-        if Fly and BV and BG then
-            local cam = workspace.CurrentCamera
-            BG.CFrame = cam.CFrame
+    FlyLoop = RunService.RenderStepped:Connect(function()
+        if not Fly then return end
 
-            local move = Vector3.zero
+        local cam = workspace.CurrentCamera
+        local move = Vector3.zero
 
-            if UIS:IsKeyDown(Enum.KeyCode.W) then
-                move += cam.CFrame.LookVector
-            end
-
-            if UIS:IsKeyDown(Enum.KeyCode.S) then
-                move -= cam.CFrame.LookVector
-            end
-
-            if UIS:IsKeyDown(Enum.KeyCode.A) then
-                move -= cam.CFrame.RightVector
-            end
-
-            if UIS:IsKeyDown(Enum.KeyCode.D) then
-                move += cam.CFrame.RightVector
-            end
-
-            BV.Velocity = move * FlySpeed
+        if UIS:IsKeyDown(Enum.KeyCode.W) then
+            move += cam.CFrame.LookVector
         end
+
+        if UIS:IsKeyDown(Enum.KeyCode.S) then
+            move -= cam.CFrame.LookVector
+        end
+
+        if UIS:IsKeyDown(Enum.KeyCode.A) then
+            move -= cam.CFrame.RightVector
+        end
+
+        if UIS:IsKeyDown(Enum.KeyCode.D) then
+            move += cam.CFrame.RightVector
+        end
+
+        BV.Velocity = move * FlySpeed
+        BG.CFrame = cam.CFrame
     end)
 end
 
-local function StopFly()
-    if BV then BV:Destroy() end
-    if BG then BG:Destroy() end
+local function DisableFly()
+    if FlyLoop then
+        FlyLoop:Disconnect()
+    end
+
+    if BV then
+        BV:Destroy()
+    end
+
+    if BG then
+        BG:Destroy()
+    end
 end
 
+--// FLY BUTTON
 FlyBtn.MouseButton1Click:Connect(function()
     Fly = not Fly
 
     if Fly then
         FlyBtn.Text = "FLY : ON"
-        StartFly()
+        EnableFly()
     else
         FlyBtn.Text = "FLY : OFF"
-        StopFly()
+        DisableFly()
     end
 end)
 
---// GUN
-local function GetGun()
-    for _,v in pairs(Character:GetChildren()) do
-        if v:IsA("Tool") then
-            return v
-        end
-    end
-end
-
---// KILL AURA
+--// KILL AURA LOOP
 RunService.RenderStepped:Connect(function()
     if not Aura then return end
     if not Character then return end
@@ -204,18 +223,18 @@ RunService.RenderStepped:Connect(function()
     local Gun = GetGun()
     if not Gun then return end
 
-    for _,Zombie in pairs(workspace:GetDescendants()) do
-        if Zombie:IsA("Model")
-        and Zombie ~= Character
-        and string.find(Zombie.Name:lower(),"zombie") then
+    for _,v in pairs(workspace:GetDescendants()) do
+        if v:IsA("Model")
+        and v ~= Character
+        and string.find(v.Name:lower(),"zombie") then
 
-            local Humanoid = Zombie:FindFirstChildOfClass("Humanoid")
-            local Root = Zombie:FindFirstChild("HumanoidRootPart")
+            local Hum = v:FindFirstChildOfClass("Humanoid")
+            local Root = v:FindFirstChild("HumanoidRootPart")
 
-            if Humanoid and Root and Humanoid.Health > 0 then
-                local Distance = (HRP.Position - Root.Position).Magnitude
+            if Hum and Root and Hum.Health > 0 then
+                local Dist = (HRP.Position - Root.Position).Magnitude
 
-                if Distance <= Range then
+                if Dist <= Range then
                     pcall(function()
 
                         GunFire:FireServer(
@@ -225,8 +244,8 @@ RunService.RenderStepped:Connect(function()
                         )
 
                         GunHit:FireServer(
-                            Zombie,
-                            Humanoid,
+                            v,
+                            Hum,
                             Root,
                             Root.Position
                         )
