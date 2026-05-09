@@ -1035,3 +1035,134 @@ local function KAGetClosestZombies(maxCount)
         end
         
         if closestIdx then
+    table.insert(result, inRange[closestIdx])
+    used[closestIdx] = true
+end
+end
+
+return result
+end
+
+local function KAClearHighlight()
+    if KAState.TargetHighlight then
+        KAState.TargetHighlight:Destroy()
+        KAState.TargetHighlight = nil
+    end
+end
+
+local function KAHighlightTarget(model)
+    KAClearHighlight()
+
+    if not model then
+        return
+    end
+
+    local hl = Instance.new("Highlight")
+    hl.FillColor = Color3.fromRGB(255, 0, 120)
+    hl.OutlineColor = Color3.fromRGB(255,255,255)
+    hl.FillTransparency = 0.4
+    hl.OutlineTransparency = 0
+    hl.Adornee = model
+    hl.Parent = CoreGui
+
+    KAState.TargetHighlight = hl
+end
+
+local function KAAttackZombie(zombie)
+    if not zombie then
+        return
+    end
+
+    if KAConfig.HighlightTarget then
+        KAHighlightTarget(zombie.Model)
+    end
+
+    local humanoid = zombie.Model and zombie.Model:FindFirstChildOfClass("Humanoid")
+
+    if humanoid and humanoid.Health > 0 then
+        humanoid:TakeDamage(10)
+    end
+end
+
+local function KAStart()
+    if KAState.Connection then
+        KAState.Connection:Disconnect()
+    end
+
+    KAState.Connection = RunService.RenderStepped:Connect(function()
+        if not KAConfig.Enabled then
+            return
+        end
+
+        local now = tick()
+
+        if now - KAState.LastFireTime < KAConfig.FireRate then
+            return
+        end
+
+        KAState.LastFireTime = now
+
+        local targets = KAGetClosestZombies(KAConfig.MaxRemotesPerFire)
+
+        for _, zombie in ipairs(targets) do
+            KAAttackZombie(zombie)
+        end
+    end)
+end
+
+local function KAStop()
+    if KAState.Connection then
+        KAState.Connection:Disconnect()
+        KAState.Connection = nil
+    end
+
+    KAClearHighlight()
+end
+
+CreateToggle(KASection, "Enable Kill Aura", false, function(val)
+    KAConfig.Enabled = val
+
+    if val then
+        KAStart()
+    else
+        KAStop()
+    end
+end)
+
+CreateSlider(KASection, "Aura Range", 50, 10, 200, function(val)
+    KAConfig.Range = val
+end)
+
+CreateSlider(KASection, "Attack Speed", 6, 1, 20, function(val)
+    KAConfig.FireRate = 1 / val
+end)
+
+CreateLabel(KASection, "Press K to Toggle Aura")
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+
+    if input.KeyCode == KAConfig.Keybind then
+        KAConfig.Enabled = not KAConfig.Enabled
+
+        if KAConfig.Enabled then
+            KAStart()
+        else
+            KAStop()
+        end
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    UpdateESP()
+end)
+
+task.spawn(function()
+    while task.wait(2) do
+        if ZombieESP.Enabled then
+            ScanZombies()
+        end
+    end
+end)
+
+print("🌸 Miu Hub Loaded Successfully")
