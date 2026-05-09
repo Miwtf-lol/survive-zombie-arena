@@ -24,10 +24,10 @@ MiuHub.IgnoreGuiInset = true
 -- ==================== MAIN WINDOW ====================
 local Window = Instance.new("Frame")
 Window.Name = "MainWindow"
-Window.Size = UDim2.new(0, 440, 0, 540)
-Window.Position = UDim2.new(0.5, -220, 0.5, -270)
+Window.Size = UDim2.new(0, 340, 0, 430) -- nhỏ hơn
+Window.Position = UDim2.new(0.5, -170, 0.5, -215)
 Window.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
-Window.BackgroundTransparency = 0.1
+Window.BackgroundTransparency = 0.15
 Window.BorderSizePixel = 0
 Window.Active = true
 Window.Selectable = true
@@ -36,7 +36,7 @@ Window.Parent = MiuHub
 
 -- Rounded corners
 local WindowCorner = Instance.new("UICorner")
-WindowCorner.CornerRadius = UDim.new(0, 14)
+WindowCorner.CornerRadius = UDim.new(0, 16)
 WindowCorner.Parent = Window
 
 -- Border glow
@@ -51,11 +51,12 @@ local GlassOverlay = Instance.new("Frame")
 GlassOverlay.Name = "GlassOverlay"
 GlassOverlay.Size = UDim2.new(1, 0, 1, 0)
 GlassOverlay.BackgroundColor3 = Color3.fromRGB(255, 182, 193)
-GlassOverlay.BackgroundTransparency = 0.85
+GlassOverlay.BackgroundTransparency = 0.88
 GlassOverlay.BorderSizePixel = 0
 GlassOverlay.Parent = Window
+
 local GlassCorner = Instance.new("UICorner")
-GlassCorner.CornerRadius = UDim.new(0, 14)
+GlassCorner.CornerRadius = UDim.new(0, 16)
 GlassCorner.Parent = GlassOverlay
 
 -- ==================== TITLE BAR (Draggable) ====================
@@ -492,41 +493,96 @@ local function MakeDraggable(frame, dragHandle)
     end)
 end
 
-MakeDraggable(Window, TitleBar)
+-- ==================== MOBILE + PC DRAG ====================
 
--- ==================== MINIMIZE FUNCTIONALITY ====================
-local minimized = false
+local dragging = false
+local dragInput
+local dragStart
+local startPos
 
-MinBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    if minimized then
-        Window:TweenSize(UDim2.new(0, 160, 0, 42), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
-        for _, content in pairs(TabContents) do
-            content.Visible = false
-        end
-        TabBar.Visible = false
-        MinBtn.Text = "□"
-    else
-        Window:TweenSize(UDim2.new(0, 440, 0, 540), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
-        TabBar.Visible = true
-        MinBtn.Text = "─"
-        if ActiveTab and Tabs[ActiveTab] then
-            Tabs[ActiveTab].Content.Visible = true
-        end
-    end
+local function UpdateDrag(input)
+	local delta = input.Position - dragStart
+
+	Window.Position = UDim2.new(
+		startPos.X.Scale,
+		startPos.X.Offset + delta.X,
+		startPos.Y.Scale,
+		startPos.Y.Offset + delta.Y
+	)
+end
+
+TitleBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1
+	or input.UserInputType == Enum.UserInputType.Touch then
+
+		dragging = true
+		dragStart = input.Position
+		startPos = Window.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
 end)
 
-CloseBtn.MouseButton1Click:Connect(function()
-    if Flying then StopFly() end
-    if NoclipConnection then NoclipConnection:Disconnect() end
-    for zombieModel, _ in pairs(ZombieESP.Zombies) do
-        RemoveZombieESP(zombieModel)
-    end
-    if ZombieESP.Folder then pcall(function() ZombieESP.Folder:Destroy() end) end
-    KAClearHighlight()
-    KAConfig.Enabled = false
-    if KAState.Connection then KAState.Connection:Disconnect() end
-    MiuHub:Destroy()
+TitleBar.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement
+	or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input == dragInput then
+		UpdateDrag(input)
+	end
+end)
+
+-- ==================== MINIMIZE FUNCTIONALITY ====================
+
+local minimized = false
+local NormalSize = UDim2.new(0, 340, 0, 430)
+local MiniSize = UDim2.new(0, 160, 0, 42)
+
+MinBtn.MouseButton1Click:Connect(function()
+	minimized = not minimized
+
+	if minimized then
+		Window:TweenSize(
+			MiniSize,
+			Enum.EasingDirection.Out,
+			Enum.EasingStyle.Quart,
+			0.25,
+			true
+		)
+
+		TabBar.Visible = false
+
+		for _, content in pairs(TabContents) do
+			content.Visible = false
+		end
+
+		MinBtn.Text = "◱"
+
+	else
+		Window:TweenSize(
+			NormalSize,
+			Enum.EasingDirection.Out,
+			Enum.EasingStyle.Quart,
+			0.25,
+			true
+		)
+
+		TabBar.Visible = true
+
+		if ActiveTab and Tabs[ActiveTab] then
+			Tabs[ActiveTab].Content.Visible = true
+		end
+
+		MinBtn.Text = "─"
+	end
 end)
 
 -- ==================== CREATE TABS ====================
@@ -1104,3 +1160,4 @@ KAFindGameClients()
 
 print("Miu Hub Loaded Successfully")
     
+
