@@ -129,10 +129,18 @@ CloseBtnCorner.CornerRadius = UDim.new(0, 8)
 CloseBtnCorner.Parent = CloseBtn
 
 -- ==================== TAB BUTTONS ====================
-local TabBar = Instance.new("Frame")
+local TabBar = Instance.new("ScrollingFrame")
 TabBar.Name = "TabBar"
 TabBar.Size = UDim2.new(1, -12, 0, 36)
 TabBar.Position = UDim2.new(0, 6, 0, 46)
+
+TabBar.CanvasSize = UDim2.new(0, 420, 0, 0)
+TabBar.AutomaticCanvasSize = Enum.AutomaticSize.X
+TabBar.ScrollingDirection = Enum.ScrollingDirection.X
+
+TabBar.ScrollBarThickness = 3
+TabBar.ClipsDescendants = true
+
 TabBar.BackgroundColor3 = Color3.fromRGB(255, 130, 180)
 TabBar.BackgroundTransparency = 0.65
 TabBar.BorderSizePixel = 0
@@ -149,8 +157,8 @@ local ActiveTab = nil
 local function CreateTabButton(name, label, icon)
     local btn = Instance.new("TextButton")
     btn.Name = name .. "Tab"
-    btn.Size = UDim2.new(0, 100, 1, -4)
-    btn.Position = UDim2.new(0, (#TabButtons * 102) + 4, 0, 2)
+    btn.Size = UDim2.new(0, 80, 1, -4)
+    btn.Position = UDim2.new(0, (#TabButtons * 82) + 4, 0, 2)
     btn.BackgroundColor3 = Color3.fromRGB(255, 150, 200)
     btn.BackgroundTransparency = 0.8
     btn.Text = icon .. " " .. label
