@@ -7,7 +7,6 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
-local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
@@ -20,14 +19,15 @@ MiuHub.Parent = CoreGui
 MiuHub.ResetOnSpawn = false
 MiuHub.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 MiuHub.DisplayOrder = 999
+MiuHub.IgnoreGuiInset = true
 
 -- ==================== MAIN WINDOW ====================
 local Window = Instance.new("Frame")
 Window.Name = "MainWindow"
 Window.Size = UDim2.new(0, 440, 0, 540)
 Window.Position = UDim2.new(0.5, -220, 0.5, -270)
-Window.BackgroundColor3 = Color3.fromRGB(255, 105, 180) -- Hot Pink
-Window.BackgroundTransparency = 0.12
+Window.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
+Window.BackgroundTransparency = 0.1
 Window.BorderSizePixel = 0
 Window.Active = true
 Window.Selectable = true
@@ -39,25 +39,19 @@ local WindowCorner = Instance.new("UICorner")
 WindowCorner.CornerRadius = UDim.new(0, 14)
 WindowCorner.Parent = Window
 
--- Shadow / Glow
-local Shadow = Instance.new("ImageLabel")
-Shadow.Name = "Shadow"
-Shadow.Size = UDim2.new(1, 30, 1, 30)
-Shadow.Position = UDim2.new(0, -15, 0, -15)
-Shadow.BackgroundTransparency = 1
-Shadow.Image = "rbxassetid://135283977825181"
-Shadow.ImageColor3 = Color3.fromRGB(255, 105, 180)
-Shadow.ImageTransparency = 0.65
-Shadow.ScaleType = Enum.ScaleType.Slice
-Shadow.SliceCenter = Rect.new(20, 20, 180, 180)
-Shadow.Parent = Window
+-- Border glow
+local BorderGlow = Instance.new("UIStroke")
+BorderGlow.Color = Color3.fromRGB(255, 80, 160)
+BorderGlow.Thickness = 2
+BorderGlow.Transparency = 0.3
+BorderGlow.Parent = Window
 
 -- Glass overlay
 local GlassOverlay = Instance.new("Frame")
 GlassOverlay.Name = "GlassOverlay"
 GlassOverlay.Size = UDim2.new(1, 0, 1, 0)
 GlassOverlay.BackgroundColor3 = Color3.fromRGB(255, 182, 193)
-GlassOverlay.BackgroundTransparency = 0.88
+GlassOverlay.BackgroundTransparency = 0.85
 GlassOverlay.BorderSizePixel = 0
 GlassOverlay.Parent = Window
 local GlassCorner = Instance.new("UICorner")
@@ -69,12 +63,21 @@ local TitleBar = Instance.new("Frame")
 TitleBar.Name = "TitleBar"
 TitleBar.Size = UDim2.new(1, 0, 0, 42)
 TitleBar.BackgroundColor3 = Color3.fromRGB(255, 80, 160)
-TitleBar.BackgroundTransparency = 0.25
+TitleBar.BackgroundTransparency = 0.2
 TitleBar.BorderSizePixel = 0
 TitleBar.Parent = Window
 local TitleBarCorner = Instance.new("UICorner")
 TitleBarCorner.CornerRadius = UDim.new(0, 14)
 TitleBarCorner.Parent = TitleBar
+
+-- Fix bottom corners of title bar
+local TitleBarFix = Instance.new("Frame")
+TitleBarFix.Size = UDim2.new(1, 0, 0, 14)
+TitleBarFix.Position = UDim2.new(0, 0, 1, -14)
+TitleBarFix.BackgroundColor3 = Color3.fromRGB(255, 80, 160)
+TitleBarFix.BackgroundTransparency = 0.2
+TitleBarFix.BorderSizePixel = 0
+TitleBarFix.Parent = TitleBar
 
 -- Title text
 local TitleLabel = Instance.new("TextLabel")
@@ -125,12 +128,15 @@ CloseBtnCorner.Parent = CloseBtn
 -- ==================== TAB BUTTONS ====================
 local TabBar = Instance.new("Frame")
 TabBar.Name = "TabBar"
-TabBar.Size = UDim2.new(1, 0, 0, 36)
-TabBar.Position = UDim2.new(0, 0, 0, 42)
+TabBar.Size = UDim2.new(1, -12, 0, 36)
+TabBar.Position = UDim2.new(0, 6, 0, 46)
 TabBar.BackgroundColor3 = Color3.fromRGB(255, 130, 180)
-TabBar.BackgroundTransparency = 0.6
+TabBar.BackgroundTransparency = 0.65
 TabBar.BorderSizePixel = 0
 TabBar.Parent = Window
+local TabBarCorner = Instance.new("UICorner")
+TabBarCorner.CornerRadius = UDim.new(0, 10)
+TabBarCorner.Parent = TabBar
 
 local Tabs = {}
 local TabButtons = {}
@@ -140,33 +146,34 @@ local ActiveTab = nil
 local function CreateTabButton(name, label, icon)
     local btn = Instance.new("TextButton")
     btn.Name = name .. "Tab"
-    btn.Size = UDim2.new(0, 100, 1, 0)
-    btn.Position = UDim2.new(0, (#TabButtons * 100), 0, 0)
+    btn.Size = UDim2.new(0, 100, 1, -4)
+    btn.Position = UDim2.new(0, (#TabButtons * 102) + 4, 0, 2)
     btn.BackgroundColor3 = Color3.fromRGB(255, 150, 200)
     btn.BackgroundTransparency = 0.8
     btn.Text = icon .. " " .. label
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 13
+    btn.TextSize = 12
     btn.BorderSizePixel = 0
     btn.Parent = TabBar
-    
     local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.CornerRadius = UDim.new(0, 8)
     btnCorner.Parent = btn
     
     -- Content frame for this tab
     local content = Instance.new("ScrollingFrame")
     content.Name = name .. "Content"
     content.Size = UDim2.new(1, -12, 1, -96)
-    content.Position = UDim2.new(0, 6, 0, 84)
+    content.Position = UDim2.new(0, 6, 0, 88)
     content.BackgroundColor3 = Color3.fromRGB(255, 150, 200)
     content.BackgroundTransparency = 0.85
     content.BorderSizePixel = 0
-    content.ScrollBarThickness = 6
+    content.ScrollBarThickness = 4
     content.ScrollBarImageColor3 = Color3.fromRGB(255, 105, 180)
+    content.ScrollBarImageTransparency = 0.3
     content.CanvasSize = UDim2.new(0, 0, 0, 0)
     content.Visible = false
+    content.AutomaticCanvasSize = Enum.AutomaticSize.Y
     content.Parent = Window
     local contentCorner = Instance.new("UICorner")
     contentCorner.CornerRadius = UDim.new(0, 10)
@@ -208,7 +215,7 @@ local function SwitchTab(name)
     
     if Tabs[name] then
         Tabs[name].Content.Visible = true
-        Tabs[name].Button.BackgroundTransparency = 0.4
+        Tabs[name].Button.BackgroundTransparency = 0.3
         ActiveTab = name
     end
 end
@@ -219,8 +226,9 @@ local function CreateSectionBox(parent, title)
     frame.Name = title .. "Section"
     frame.Size = UDim2.new(1, 0, 0, 0)
     frame.BackgroundColor3 = Color3.fromRGB(255, 182, 193)
-    frame.BackgroundTransparency = 0.6
+    frame.BackgroundTransparency = 0.55
     frame.BorderSizePixel = 0
+    frame.AutomaticSize = Enum.AutomaticSize.Y
     frame.Parent = parent
     
     local frameCorner = Instance.new("UICorner")
@@ -348,7 +356,7 @@ local function CreateSlider(parent, text, default, min, max, callback)
     
     local sliderBg = Instance.new("Frame")
     sliderBg.Size = UDim2.new(1, -16, 0, 6)
-    sliderBg.Position = UDim2.new(0, 8, 0, 28)
+    sliderBg.Position = UDim2.new(0, 8, 0, 30)
     sliderBg.BackgroundColor3 = Color3.fromRGB(80, 40, 60)
     sliderBg.BorderSizePixel = 0
     sliderBg.Parent = sliderFrame
@@ -384,7 +392,7 @@ local function CreateSlider(parent, text, default, min, max, callback)
         local absPos = sliderBg.AbsolutePosition
         local absSize = sliderBg.AbsoluteSize.X
         local relX = math.clamp(inputPos.X - absPos.X, 0, absSize)
-        local pct = relX / absSize
+        local pct = absSize > 0 and relX / absSize or 0
         value = math.floor(min + (max - min) * pct)
         label.Text = text .. ": " .. tostring(value)
         sliderFill.Size = UDim2.new(pct, 0, 1, 0)
@@ -470,15 +478,15 @@ local function MakeDraggable(frame, dragHandle)
         end
     end)
     
-    UserInputService.InputChanged:Connect(function(input)
+    local dragConnection
+    dragConnection = UserInputService.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
             local newX = startPos.X.Offset + delta.X
             local newY = startPos.Y.Offset + delta.Y
-            -- Clamp to screen
-            local screenSize = workspace.CurrentCamera.ViewportSize
-            newX = math.clamp(newX, -frame.AbsoluteSize.X + 50, screenSize.X - 50)
-            newY = math.clamp(newY, -10, screenSize.Y - 50)
+            local screenSize = Workspace.CurrentCamera.ViewportSize
+            newX = math.clamp(newX, -frame.AbsoluteSize.X + 60, screenSize.X - 60)
+            newY = math.clamp(newY, -10, screenSize.Y - 40)
             frame.Position = UDim2.new(0, newX, 0, newY)
         end
     end)
@@ -488,8 +496,6 @@ MakeDraggable(Window, TitleBar)
 
 -- ==================== MINIMIZE FUNCTIONALITY ====================
 local minimized = false
-local originalSize = Window.Size
-local originalPos = Window.Position
 
 MinBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
@@ -499,12 +505,10 @@ MinBtn.MouseButton1Click:Connect(function()
             content.Visible = false
         end
         TabBar.Visible = false
-        Shadow.Visible = false
         MinBtn.Text = "□"
     else
-        Window:TweenSize(originalSize, Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
+        Window:TweenSize(UDim2.new(0, 440, 0, 540), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.2, true)
         TabBar.Visible = true
-        Shadow.Visible = true
         MinBtn.Text = "─"
         if ActiveTab and Tabs[ActiveTab] then
             Tabs[ActiveTab].Content.Visible = true
@@ -513,7 +517,6 @@ MinBtn.MouseButton1Click:Connect(function()
 end)
 
 CloseBtn.MouseButton1Click:Connect(function()
-    -- Cleanup all features
     if Flying then StopFly() end
     if NoclipConnection then NoclipConnection:Disconnect() end
     for zombieModel, _ in pairs(ZombieESP.Zombies) do
@@ -545,10 +548,80 @@ local BodyGyro = nil
 local BodyVelocity = nil
 local NoclipConnection = nil
 
-local PlayerScripts = LocalPlayer:WaitForChild("PlayerScripts")
-local PlayerModule = require(PlayerScripts:WaitForChild("PlayerModule"))
-local ControlModule = PlayerModule:GetControls()
+pcall(function()
+    PlayerScripts = LocalPlayer:WaitForChild("PlayerScripts")
+    PlayerModule = require(PlayerScripts:WaitForChild("PlayerModule"))
+    ControlModule = PlayerModule:GetControls()
+end)
 
+local function StartFly()
+    local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local Humanoid = Character:WaitForChild("Humanoid")
+    local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+    
+    BodyGyro = Instance.new("BodyGyro")
+    BodyGyro.P = 9e4
+    BodyGyro.MaxTorque = Vector3.new(9e9, 0, 9e9)
+    BodyGyro.CFrame = HumanoidRootPart.CFrame
+    BodyGyro.Parent = HumanoidRootPart
+    
+    BodyVelocity = Instance.new("BodyVelocity")
+    BodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    BodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    BodyVelocity.Parent = HumanoidRootPart
+    
+    Humanoid.PlatformStand = true
+    
+    FlyConnection = RunService.RenderStepped:Connect(function()
+        if not Flying then return end
+        
+        local camCF = Camera.CFrame
+        local camLook = camCF.LookVector
+        local camRight = camCF.RightVector
+        local moveVec = ControlModule and ControlModule:GetMoveVector() or Vector3.new(0,0,0)
+        local moveDir = (camLook * -moveVec.Z) + (camRight * moveVec.X)
+        
+        if moveDir.Magnitude > 0.01 then
+            moveDir = moveDir.Unit * FlySpeed
+        else
+            moveDir = Vector3.new(0, 0, 0)
+        end
+        
+        if BodyVelocity then
+            BodyVelocity.Velocity = moveDir
+        end
+        
+        if BodyGyro then
+            local yaw = math.atan2(camLook.X, camLook.Z)
+            BodyGyro.CFrame = CFrame.Angles(0, yaw, 0)
+        end
+    end)
+end
+
+local function StopFly()
+    if FlyConnection then
+        FlyConnection:Disconnect()
+        FlyConnection = nil
+    end
+    if BodyGyro then
+        BodyGyro:Destroy()
+        BodyGyro = nil
+    end
+    if BodyVelocity then
+        BodyVelocity:Destroy()
+        BodyVelocity = nil
+    end
+    
+    local char = LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.PlatformStand = false
+        end
+    end
+end
+
+-- Fly UI
 local FlyToggle = CreateToggle(FlySection, "Enable Fly", false, function(val)
     Flying = val
     if Flying then StartFly() else StopFly() end
@@ -586,84 +659,6 @@ local NoclipToggle = CreateToggle(FlySection, "Noclip", false, function(val)
     end
 end)
 
-function StartFly()
-    local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local Humanoid = Character:WaitForChild("Humanoid")
-    local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
-    
-    BodyGyro = Instance.new("BodyGyro")
-    BodyGyro.P = 9e4
-    BodyGyro.MaxTorque = Vector3.new(9e9, 0, 9e9)
-    BodyGyro.CFrame = HumanoidRootPart.CFrame
-    BodyGyro.Parent = HumanoidRootPart
-    
-    BodyVelocity = Instance.new("BodyVelocity")
-    BodyVelocity.Velocity = Vector3.new(0, 0, 0)
-    BodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-    BodyVelocity.Parent = HumanoidRootPart
-    
-    Humanoid.PlatformStand = true
-    
-    FlyConnection = RunService.RenderStepped:Connect(function()
-        if not Flying then return end
-        
-        local camCF = Camera.CFrame
-        local camLook = camCF.LookVector
-        local camRight = camCF.RightVector
-        local moveVec = ControlModule:GetMoveVector()
-        local moveDir = (camLook * -moveVec.Z) + (camRight * moveVec.X)
-        
-        if moveDir.Magnitude > 0.01 then
-            moveDir = moveDir.Unit * FlySpeed
-        else
-            moveDir = Vector3.new(0, 0, 0)
-        end
-        
-        if BodyVelocity then
-            BodyVelocity.Velocity = moveDir
-        end
-        
-        if BodyGyro then
-            local yaw = math.atan2(camLook.X, camLook.Z)
-            BodyGyro.CFrame = CFrame.Angles(0, yaw, 0)
-        end
-    end)
-end
-
-function StopFly()
-    if FlyConnection then
-        FlyConnection:Disconnect()
-        FlyConnection = nil
-    end
-    if BodyGyro then
-        BodyGyro:Destroy()
-        BodyGyro = nil
-    end
-    if BodyVelocity then
-        BodyVelocity:Destroy()
-        BodyVelocity = nil
-    end
-    
-    local char = LocalPlayer.Character
-    if char then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.PlatformStand = false
-        end
-    end
-end
-
--- Update canvas size for Fly content
-local function UpdateCanvasSize(frame)
-    local totalHeight = 0
-    for _, child in pairs(frame:GetChildren()) do
-        if child:IsA("Frame") or child:IsA("TextLabel") or child:IsA("TextButton") then
-            totalHeight = totalHeight + child.AbsoluteSize.Y + 6
-        end
-    end
-    frame.CanvasSize = UDim2.new(0, 0, 0, totalHeight + 20)
-end
-
 -- ==================== ESP SECTION ====================
 local ESPSection, ESPSectionLayout = CreateSectionBox(ESPContent, "Zombie ESP")
 
@@ -674,7 +669,7 @@ local ZombieESP = {
     ShowDistance = true,
     MaxDistance = 1000,
     TextSize = 14,
-    Color = Color3.fromRGB(255, 80, 160), -- Pink theme
+    Color = Color3.fromRGB(255, 80, 160),
     Zombies = {},
     Folder = nil,
 }
@@ -851,7 +846,7 @@ local function UpdateESP()
     end
 end
 
--- ESP UI Elements
+-- ESP UI
 CreateToggle(ESPSection, "Enable Zombie ESP", false, function(val)
     ZombieESP.Enabled = val
     if val then ScanZombies() end
@@ -882,6 +877,9 @@ CreateSlider(ESPSection, "Text Size", 14, 8, 24, function(val)
     end
 end)
 
+-- ESP Color Picker (simplified)
+CreateLabel(ESPSection, "🎨 ESP Color: Hot Pink (Default)")
+
 -- ==================== KILL AURA SECTION ====================
 local KASection, KASectionLayout = CreateSectionBox(KAContent, "Kill Aura")
 
@@ -890,9 +888,7 @@ local KAConfig = {
     Range = 50,
     FireRate = 0.06,
     MaxRemotesPerFire = 6,
-    BatchSize = 5,
     HighlightTarget = true,
-    SilentAim = true,
     Keybind = Enum.KeyCode.K,
 }
 
@@ -904,7 +900,6 @@ local KAState = {
     ZombieClient = nil,
     GunClient = nil,
     GunRemotes = nil,
-    EquippedGunName = nil,
     LastRemoteCount = 0,
     TotalDamageDealt = 0,
 }
@@ -921,7 +916,7 @@ local function KAFindGameClients()
         KAState.GunClient = _G.GunClient
     end
     
-    local playerScripts = LocalPlayer:WaitForChild("PlayerScripts", 5)
+    local playerScripts = LocalPlayer:FindFirstChild("PlayerScripts")
     if playerScripts then
         local function scan(parent)
             for _, obj in ipairs(parent:GetChildren()) do
@@ -984,3 +979,59 @@ local function KAScanZombiesFast()
         for _, model in ipairs(folder:GetChildren()) do
             if model:IsA("Model") then
                 local pos = nil
+                local hrp = model:FindFirstChild("HumanoidRootPart")
+                if hrp then pos = hrp.Position end
+                local id = tonumber(model.Name:match("%d+")) or model.Name
+                table.insert(zombies, {
+                    Id = id, 
+                    Model = model, 
+                    Position = pos, 
+                    Distance = math.huge,
+                    Tier = "Unknown"
+                })
+            end
+        end
+    end
+    
+    KACachedZombies = zombies
+    return zombies
+end
+
+local function KAGetClosestZombies(maxCount)
+    local char = LocalPlayer.Character
+    if not char then return {} end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return {} end
+    
+    local myPos = hrp.Position
+    local allZombies = KAScanZombiesFast()
+    local inRange = {}
+    
+    for _, zombie in ipairs(allZombies) do
+        if zombie.Position then
+            local dist = (zombie.Position - myPos).Magnitude
+            if dist <= KAConfig.Range then
+                zombie.Distance = dist
+                table.insert(inRange, zombie)
+            end
+        end
+    end
+    
+    if #inRange == 0 then return {} end
+    if #inRange <= maxCount then return inRange end
+    
+    local result = {}
+    local used = {}
+    
+    for n = 1, maxCount do
+        local closestIdx = nil
+        local closestDist = math.huge
+        
+        for i = 1, #inRange do
+            if not used[i] and inRange[i].Distance < closestDist then
+                closestDist = inRange[i].Distance
+                closestIdx = i
+            end
+        end
+        
+        if closestIdx then
